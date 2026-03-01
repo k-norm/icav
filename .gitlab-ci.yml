@@ -1,0 +1,45 @@
+stages:
+  - lint
+  - test
+
+variables:
+  FRONTEND_DIR: frontend
+  BACKEND_DIR: backend
+
+lint_frontend:
+  stage: lint
+  image: node:18
+  script:
+    - cd $FRONTEND_DIR
+    - npm install
+    - npm run lint
+  only:
+    - branches
+
+lint_backend:
+  stage: lint
+  image: gradle:jdk17
+  script:
+    - cd $BACKEND_DIR
+    - ./gradlew check
+  only:
+    - branches
+
+test_frontend:
+  stage: test
+  image: node:18
+  script:
+    - cd $FRONTEND_DIR
+    - npm install
+    - npm test
+  only:
+    - branches
+
+test_backend:
+  stage: test
+  image: gradle:jdk17
+  script:
+    - cd $BACKEND_DIR
+    - ./gradlew test
+  only:
+    - branches
