@@ -82,3 +82,7 @@ both frontend and backend. Adjust them as you add real code.
 
 > **GitLab Settings**: set branch name regex (e.g. ^(feature|bugfix|hotfix)\/[A-Z]+-\d+-.+$), require at least one reviewer in merge request rules, and configure the issue/MR templates in **Settings  General  Merge request settings** and **Settings  General  Issue settings**.
 
+
+
+> **Milestones**: create two milestones in GitLab (mid-semester, end-of-semester) under **Issues  Milestones**; they are used for burndown charts.
+
