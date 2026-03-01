@@ -78,3 +78,7 @@ both frontend and backend. Adjust them as you add real code.
 ---
 
 *This README was populated during Sprint4 setup.*
+
+
+> **GitLab Settings**: set branch name regex (e.g. ^(feature|bugfix|hotfix)\/[A-Z]+-\d+-.+$), require at least one reviewer in merge request rules, and configure the issue/MR templates in **Settings  General  Merge request settings** and **Settings  General  Issue settings**.
+
