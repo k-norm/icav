@@ -6,8 +6,8 @@ COPY . .
 # run the build, skipping tests for speed
 RUN gradle build -x test --no-daemon
 
-# runtime stage uses a lightweight JRE image
-FROM eclipse-temurin:17-jre-alpine
+# runtime stage uses Eclipse Temurin JRE (supports both amd64 and arm64/Mac)
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /home/gradle/project/build/libs/*.jar app.jar
 EXPOSE 8080
