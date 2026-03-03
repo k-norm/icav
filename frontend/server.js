@@ -14,3 +14,6 @@ This tool enables regional planners, public economists, operations analysts, and
 });
 
 app.listen(port, () => console.log(`Frontend running on port ${port}`));
+
+// export app for testing
+module.exports = app;
