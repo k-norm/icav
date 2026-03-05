@@ -1,1 +1,31 @@
-package ca.uoguelph.socs.cis3760.icav.controller;\n\nimport ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;\nimport ca.uoguelph.socs.cis3760.icav.service.FacilityConditionService;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.*;\n\nimport java.util.List;\n\n@RestController\n@RequestMapping(\"/api/facilities\")\n@CrossOrigin(origins = \"*\")\npublic class FacilityConditionController {\n\n    @Autowired\n    private FacilityConditionService facilityConditionService;\n\n    /**\n     * GET endpoint to retrieve facility condition data by province.\n     * Returns a list of FacilityConditionData objects with condition counts\n     * (Excellent, Good, Fair, Poor) for each province/territory.\n     *\n     * @return List of facility condition data grouped by province\n     */\n    @GetMapping(\"/condition\")\n    public ResponseEntity<List<FacilityConditionData>> getFacilityCondition() {\n        List<FacilityConditionData> data = facilityConditionService.getFacilityConditionByProvince();\n        return ResponseEntity.ok(data);\n    }\n}\n
+package ca.uoguelph.socs.cis3760.icav.controller;
+
+import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
+import ca.uoguelph.socs.cis3760.icav.service.FacilityConditionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/facilities")
+@CrossOrigin(origins = "*")
+public class FacilityConditionController {
+
+    @Autowired
+    private FacilityConditionService facilityConditionService;
+
+    /**
+     * GET endpoint to retrieve facility condition data by province.
+     * Returns a list of FacilityConditionData objects with condition counts
+     * (Excellent, Good, Fair, Poor) for each province/territory.
+     *
+     * @return List of facility condition data grouped by province
+     */
+    @GetMapping("/condition")
+    public ResponseEntity<List<FacilityConditionData>> getFacilityCondition() {
+        List<FacilityConditionData> data = facilityConditionService.getFacilityConditionByProvince();
+        return ResponseEntity.ok(data);
+    }
+}
