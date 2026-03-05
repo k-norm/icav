@@ -13,12 +13,12 @@ public class FacilityConditionServiceTest {
     private FacilityConditionService facilityConditionService;
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         facilityConditionService = new FacilityConditionService();
     }
 
     @Test
-    void testGetFacilityConditionByProvince_ReturnsData() {
+    public void testGetFacilityConditionByProvince_ReturnsData() {
         List<FacilityConditionData> data = facilityConditionService.getFacilityConditionByProvince();
         
         assertNotNull(data);
@@ -27,7 +27,7 @@ public class FacilityConditionServiceTest {
     }
 
     @Test
-    void testGetFacilityConditionByProvince_DataContainsOntario() {
+    public void testGetFacilityConditionByProvince_DataContainsOntario() {
         List<FacilityConditionData> data = facilityConditionService.getFacilityConditionByProvince();
         
         boolean ontarioFound = data.stream()
@@ -37,7 +37,7 @@ public class FacilityConditionServiceTest {
     }
 
     @Test
-    void testFacilityConditionDataModel() {
+    public void testFacilityConditionDataModel() {
         FacilityConditionData data = new FacilityConditionData("Test Province", 100, 80, 50, 20);
         
         assertEquals("Test Province", data.getProvince());
