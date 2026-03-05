@@ -1,20 +1,33 @@
 package ca.uoguelph.socs.cis3760.icav.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 
+@Entity
+@Table(name = "facility_condition_data")
 public class FacilityConditionData {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(name = "province")
     @JsonProperty("province")
     private String province;
     
+    @Column(name = "excellent")
     @JsonProperty("excellent")
     private int excellent;
     
+    @Column(name = "good")
     @JsonProperty("good")
     private int good;
     
+    @Column(name = "fair")
     @JsonProperty("fair")
     private int fair;
     
+    @Column(name = "poor")
     @JsonProperty("poor")
     private int poor;
 

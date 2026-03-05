@@ -1,34 +1,58 @@
 package ca.uoguelph.socs.cis3760.icav.service;
 
 import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
+import ca.uoguelph.socs.cis3760.icav.dto.FacilityConditionStats;
+import ca.uoguelph.socs.cis3760.icav.repository.FacilityConditionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class FacilityConditionService {
 
+    @Autowired
+    private FacilityConditionRepository facilityConditionRepository;
+
     /**
-     * Returns sample facility condition data by province.
-     * This data is currently hardcoded but will be replaced with
-     * actual Statistics Canada data in future sprints.
+     * Retrieves facility condition data by province from the database.
+     * Returns facility condition counts (Excellent, Good, Fair, Poor) for each province.
+     * 
+     * @return List of FacilityConditionData objects from the database, ordered by province
      */
     public List<FacilityConditionData> getFacilityConditionByProvince() {
-        List<FacilityConditionData> data = new ArrayList<>();
-        
-        // Sample data representing facility condition counts by province
-        data.add(new FacilityConditionData("Ontario", 120, 85, 45, 20));
-        data.add(new FacilityConditionData("British Columbia", 95, 70, 35, 15));
-        data.add(new FacilityConditionData("Alberta", 105, 75, 40, 18));
-        data.add(new FacilityConditionData("Quebec", 130, 90, 50, 25));
-        data.add(new FacilityConditionData("Manitoba", 60, 45, 20, 10));
-        data.add(new FacilityConditionData("Saskatchewan", 55, 40, 18, 9));
-        data.add(new FacilityConditionData("Nova Scotia", 40, 30, 15, 7));
-        data.add(new FacilityConditionData("New Brunswick", 35, 25, 12, 6));
-        data.add(new FacilityConditionData("Newfoundland", 30, 22, 10, 5));
-        data.add(new FacilityConditionData("Prince Edward Island", 20, 15, 8, 3));
-        
-        return data;
+        return facilityConditionRepository.findAllByOrderByProvinceAsc();
+    }
+
+    /**
+     * Calculates facility condition statistics with percentages.
+     * Computes the percentage distribution of Excellent, Good, Fair, and Poor facilities.
+     * 
+     * @return List of FacilityConditionStats with percentage calculations
+     */
+    public List<FacilityConditionStats> getFacilityConditionStats() {
+        return facilityConditionRepository.findAllByOrderByProvinceAsc().stream()
+            .map(data -> {
+                int total = data.getExcellent() + data.getGood() + data.getFair() + data.getPoor();
+                double excellentPercent = (double) data.getExcellent() / total * 100;
+                double goodPercent = (double) data.getGood() / total * 100;
+                double fairPercent = (double) data.getFair() / total * 100;
+                double poorPercent = (double) data.getPoor() / total * 100;
+                
+                return new FacilityConditionStats(
+                    data.getProvince(),
+                    data.getExcellent(),
+                    data.getGood(),
+                    data.getFair(),
+                    data.getPoor(),
+                    total,
+                    Math.round(excellentPercent * 100.0) / 100.0,
+                    Math.round(goodPercent * 100.0) / 100.0,
+                    Math.round(fairPercent * 100.0) / 100.0,
+                    Math.round(poorPercent * 100.0) / 100.0
+                );
+            })
+            .collect(Collectors.toList());
     }
 }

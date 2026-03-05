@@ -58,6 +58,12 @@ app.get('/', (req, res) => {
         .btn-secondary:hover {
             background-color: #1e7e34;
         }
+        .btn-tertiary {
+            background-color: #ff9800;
+        }
+        .btn-tertiary:hover {
+            background-color: #e68900;
+        }
     </style>
 </head>
 <body>
@@ -67,6 +73,7 @@ app.get('/', (req, res) => {
         <div class="buttons">
             <a href="/chart/condition" class="btn">View Chart</a>
             <a href="/table/condition" class="btn btn-secondary">View Table</a>
+            <a href="/stats/condition" class="btn btn-tertiary">View Statistics</a>
         </div>
     </div>
 </body>
@@ -561,6 +568,269 @@ app.get('/chart/condition', (req, res) => {
     </html>
     `;
     res.send(chartHtml);
+});
+
+// Route for facility condition statistics
+app.get('/stats/condition', (req, res) => {
+    const statsHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Facility Condition Statistics - ICAV</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background-color: #f5f5f5;
+                padding: 20px;
+            }
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #333;
+                margin-bottom: 10px;
+                font-size: 2.5em;
+                text-align: center;
+            }
+            .subtitle {
+                color: #666;
+                margin-bottom: 30px;
+                font-size: 1.1em;
+                text-align: center;
+            }
+            .nav-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-bottom: 30px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                background: #667eea;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+            }
+            .btn:hover {
+                background: #5a67d8;
+            }
+            .btn-secondary {
+                background: #4CAF50;
+            }
+            .btn-secondary:hover {
+                background: #45a049;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+                font-size: 0.9em;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: center;
+            }
+            th {
+                background-color: #f8f9fa;
+                color: #333;
+                font-weight: 600;
+                position: sticky;
+                top: 0;
+            }
+            tr:nth-child(even) {
+                background-color: #f8f9fa;
+            }
+            tr:hover {
+                background-color: #e3f2fd;
+            }
+            .province-cell {
+                text-align: left;
+                font-weight: 600;
+            }
+            .loading {
+                text-align: center;
+                padding: 50px;
+                font-size: 1.2em;
+                color: #666;
+            }
+            .error {
+                color: #d32f2f;
+                font-weight: bold;
+                padding: 15px;
+                background-color: #ffebee;
+                border-radius: 4px;
+                margin: 20px 0;
+                text-align: center;
+            }
+            .summary-table {
+                width: 100%;
+                margin-top: 40px;
+                border-collapse: collapse;
+            }
+            .summary-table th {
+                background-color: #f8f9fa;
+                color: #333;
+                font-weight: 600;
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: center;
+            }
+            .summary-table td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: center;
+            }
+            .summary-label {
+                text-align: left;
+                font-weight: 600;
+            }
+            .summary-section {
+                margin-top: 40px;
+            }
+            .summary-section h3 {
+                color: #333;
+                margin-bottom: 15px;
+                font-size: 1.3em;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Facility Condition Statistics</h1>
+            <div class="subtitle">Detailed province-by-province breakdown with percentage distribution</div>
+
+            <div class="nav-buttons">
+                <a href="/" class="btn">Home</a>
+                <a href="/chart/condition" class="btn btn-secondary">View Chart</a>
+                <a href="/table/condition" class="btn btn-secondary">View Table</a>
+            </div>
+
+            <div id="stats-container" class="loading">Loading statistics...</div>
+
+            <div id="summary-container"></div>
+        </div>
+
+        <script>
+            // Fetch statistics from backend API and render as table
+            fetch('http://localhost:8080/api/facilities/stats')
+                .then(res => res.json())
+                .then(data => {
+                    renderStats(data);
+                    renderSummary(data);
+                })
+                .catch(err => {
+                    document.getElementById('stats-container').innerHTML = '<div class="error">Error loading statistics: ' + err.message + '</div>';
+                });
+
+            function renderStats(data) {
+                const container = document.getElementById('stats-container');
+                let html = '<table>';
+                html += '<thead>';
+                html += '<tr>';
+                html += '<th class="province-cell">Province</th>';
+                html += '<th>Excellent (Count)</th>';
+                html += '<th>Excellent (%)</th>';
+                html += '<th>Good (Count)</th>';
+                html += '<th>Good (%)</th>';
+                html += '<th>Fair (Count)</th>';
+                html += '<th>Fair (%)</th>';
+                html += '<th>Poor (Count)</th>';
+                html += '<th>Poor (%)</th>';
+                html += '<th>Total</th>';
+                html += '</tr>';
+                html += '</thead>';
+                html += '<tbody>';
+
+                data.forEach(d => {
+                    html += '<tr>';
+                    html += '<td class="province-cell">' + d.province + '</td>';
+                    html += '<td>' + d.excellent.toLocaleString() + '</td>';
+                    html += '<td>' + d.excellent_percent.toFixed(2) + '%</td>';
+                    html += '<td>' + d.good.toLocaleString() + '</td>';
+                    html += '<td>' + d.good_percent.toFixed(2) + '%</td>';
+                    html += '<td>' + d.fair.toLocaleString() + '</td>';
+                    html += '<td>' + d.fair_percent.toFixed(2) + '%</td>';
+                    html += '<td>' + d.poor.toLocaleString() + '</td>';
+                    html += '<td>' + d.poor_percent.toFixed(2) + '%</td>';
+                    html += '<td><strong>' + d.total_facilities.toLocaleString() + '</strong></td>';
+                    html += '</tr>';
+                });
+
+                html += '</tbody>';
+                html += '</table>';
+                container.innerHTML = html;
+            }
+
+            function renderSummary(data) {
+                const container = document.getElementById('summary-container');
+                
+                let totalFacilities = 0;
+                let totalExcellent = 0, totalGood = 0, totalFair = 0, totalPoor = 0;
+
+                data.forEach(d => {
+                    totalFacilities += d.total_facilities;
+                    totalExcellent += d.excellent;
+                    totalGood += d.good;
+                    totalFair += d.fair;
+                    totalPoor += d.poor;
+                });
+
+                const excellentPct = (totalExcellent / totalFacilities * 100).toFixed(2);
+                const goodPct = (totalGood / totalFacilities * 100).toFixed(2);
+                const fairPct = (totalFair / totalFacilities * 100).toFixed(2);
+                const poorPct = (totalPoor / totalFacilities * 100).toFixed(2);
+
+                let html = '<div class="summary-section">';
+                html += '<h3>Overall Summary (All Provinces & Territories)</h3>';
+                html += '<table class="summary-table">';
+                html += '<thead>';
+                html += '<tr>';
+                html += '<th class="summary-label">Metric</th>';
+                html += '<th>Excellent</th>';
+                html += '<th>Good</th>';
+                html += '<th>Fair</th>';
+                html += '<th>Poor</th>';
+                html += '<th>Total</th>';
+                html += '</tr>';
+                html += '</thead>';
+                html += '<tbody>';
+                html += '<tr>';
+                html += '<td class="summary-label">Count</td>';
+                html += '<td>' + totalExcellent.toLocaleString() + '</td>';
+                html += '<td>' + totalGood.toLocaleString() + '</td>';
+                html += '<td>' + totalFair.toLocaleString() + '</td>';
+                html += '<td>' + totalPoor.toLocaleString() + '</td>';
+                html += '<td><strong>' + totalFacilities.toLocaleString() + '</strong></td>';
+                html += '</tr>';
+                html += '<tr>';
+                html += '<td class="summary-label">Percentage</td>';
+                html += '<td>' + excellentPct + '%</td>';
+                html += '<td>' + goodPct + '%</td>';
+                html += '<td>' + fairPct + '%</td>';
+                html += '<td>' + poorPct + '%</td>';
+                html += '<td><strong>100%</strong></td>';
+                html += '</tr>';
+                html += '</tbody>';
+                html += '</table>';
+                html += '</div>';
+                container.innerHTML = html;
+            }
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(statsHtml);
 });
 
 app.listen(port, () => console.log(`Frontend running on port ${port}`));
