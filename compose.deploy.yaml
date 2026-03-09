@@ -1,0 +1,47 @@
+#Docker Compose deployment configuration for ICAV application
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    environment:
+      - DB_ADDRESS=jdbc:mariadb://db:3306/icavdb
+      - DB_DATABASE=icavdb
+      - DB_USER=icav
+      - DB_PASSWORD=icavpass
+    networks:
+      - backend-database
+      - backend-frontend
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:11
+    environment:
+      - MYSQL_ROOT_PASSWORD=example
+      - MYSQL_DATABASE=icavdb
+      - MYSQL_USER=icav
+      - MYSQL_PASSWORD=icavpass
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - backend-database
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_PROXY=http://backend:8080
+    networks:
+      - backend-frontend
+    depends_on:
+      - backend
+
+volumes:
+  mariadb_data:
+
+networks:
+  backend-database:
+  backend-frontend:
