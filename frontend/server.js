@@ -308,7 +308,6 @@ app.get('/chart/condition', (req, res) => {
             }
             #chart {
                 width: 100%;
-                min-height: 660px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -353,10 +352,9 @@ app.get('/chart/condition', (req, res) => {
                 display: flex;
                 justify-content: center;
                 gap: 30px;
-                margin-top: 10px;
+                margin-top: -40px;
                 flex-wrap: wrap;
                 position: relative;
-                top: -60px; /* lift legend closer to chart */
             }
             .legend-item {
                 display: flex;
@@ -372,6 +370,36 @@ app.get('/chart/condition', (req, res) => {
             .good { background-color: #82ca9d; }
             .fair { background-color: #ffc658; }
             .poor { background-color: #ff8042; }
+            .legend-section {
+                background-color: #e8f4f8;
+                border-left: 4px solid #0288d1;
+                padding: 20px;
+                margin-top: 40px;
+                border-radius: 4px;
+            }
+            .legend-section h3 {
+                color: #01579b;
+                margin-bottom: 15px;
+                font-size: 1.1em;
+            }
+            .legend-definitions {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 15px;
+            }
+            .definition-item {
+                margin-bottom: 0;
+            }
+            .definition-item-title {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 5px;
+            }
+            .definition-item-desc {
+                color: #555;
+                font-size: 0.9em;
+                line-height: 1.4;
+            }
         </style>
     </head>
     <body>
@@ -403,6 +431,28 @@ app.get('/chart/condition', (req, res) => {
                     <span>Poor</span>
                 </div>
             </div>
+
+            <div class="legend-section">
+                <h3>Facility Condition Categories</h3>
+                <div class="legend-definitions">
+                    <div class="definition-item">
+                        <div class="definition-item-title">Excellent</div>
+                        <div class="definition-item-desc">Well-maintained facilities in top condition with minimal defects or repairs needed.</div>
+                    </div>
+                    <div class="definition-item">
+                        <div class="definition-item-title">Good</div>
+                        <div class="definition-item-desc">Properly maintained facilities with minor wear and tear. Generally functioning well with infrequent repairs.</div>
+                    </div>
+                    <div class="definition-item">
+                        <div class="definition-item-title">Fair</div>
+                        <div class="definition-item-desc">Facilities showing signs of aging with moderate maintenance needs. Regular repairs required but still operational.</div>
+                    </div>
+                    <div class="definition-item">
+                        <div class="definition-item-title">Poor</div>
+                        <div class="definition-item-desc">Facilities in critical condition requiring urgent repairs or rehabilitation. Significant deterioration or structural concerns.</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <script>
@@ -428,7 +478,7 @@ app.get('/chart/condition', (req, res) => {
                 // Create SVG
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('width', chartContainer.clientWidth);
-                svg.setAttribute('height', 660);
+                svg.setAttribute('height', margin.top + height + margin.bottom);
                 
                 // Create group for chart area
                 const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -703,12 +753,64 @@ app.get('/stats/condition', (req, res) => {
                 margin-bottom: 15px;
                 font-size: 1.3em;
             }
+            .legend-section {
+                background-color: #e8f4f8;
+                border-left: 4px solid #0288d1;
+                padding: 20px;
+                margin-bottom: 30px;
+                border-radius: 4px;
+            }
+            .legend-section h3 {
+                color: #01579b;
+                margin-bottom: 15px;
+                font-size: 1.1em;
+            }
+            .legend-items {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 15px;
+            }
+            .legend-item {
+                margin-bottom: 0;
+            }
+            .legend-item-title {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 5px;
+            }
+            .legend-item-desc {
+                color: #555;
+                font-size: 0.9em;
+                line-height: 1.4;
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <h1>Facility Condition Statistics</h1>
             <div class="subtitle">Detailed province-by-province breakdown with percentage distribution</div>
+
+            <div class="legend-section">
+                <h3>Facility Condition Categories</h3>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-item-title">Excellent</div>
+                        <div class="legend-item-desc">Well-maintained facilities in top condition with minimal defects or repairs needed.</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-item-title">Good</div>
+                        <div class="legend-item-desc">Properly maintained facilities with minor wear and tear. Generally functioning well with infrequent repairs.</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-item-title">Fair</div>
+                        <div class="legend-item-desc">Facilities showing signs of aging with moderate maintenance needs. Regular repairs required but still operational.</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-item-title">Poor</div>
+                        <div class="legend-item-desc">Facilities in critical condition requiring urgent repairs or rehabilitation. Significant deterioration or structural concerns.</div>
+                    </div>
+                </div>
+            </div>
 
             <div class="nav-buttons">
                 <a href="/" class="btn">Home</a>
