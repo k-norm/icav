@@ -1,49 +1,45 @@
 package ca.uoguelph.socs.cis3760.icav.service;
 
 import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
+import ca.uoguelph.socs.cis3760.icav.dto.FacilityConditionStats;
+import ca.uoguelph.socs.cis3760.icav.repository.FacilityConditionRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 public class FacilityConditionServiceTest {
 
+    @Mock
+    private FacilityConditionRepository facilityConditionRepository;
+
+    @InjectMocks
     private FacilityConditionService facilityConditionService;
 
     @BeforeEach
-    public void setUp() {
-        facilityConditionService = new FacilityConditionService();
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
-
+    // ---------- TEST getFacilityConditionByProvince ----------
     @Test
-    public void testGetFacilityConditionByProvince_ReturnsData() {
-        List<FacilityConditionData> data = facilityConditionService.getFacilityConditionByProvince();
-        
-        assertNotNull(data);
-        assertFalse(data.isEmpty());
-        assertEquals(10, data.size());
-    }
+    void testGetFacilityConditionStats_Size() {
 
-    @Test
-    public void testGetFacilityConditionByProvince_DataContainsOntario() {
-        List<FacilityConditionData> data = facilityConditionService.getFacilityConditionByProvince();
-        
-        boolean ontarioFound = data.stream()
-            .anyMatch(d -> "Ontario".equals(d.getProvince()));
-        
-        assertTrue(ontarioFound);
-    }
+        FacilityConditionData data =
+                new FacilityConditionData("Ontario", 100, 50, 30, 20);
 
-    @Test
-    public void testFacilityConditionDataModel() {
-        FacilityConditionData data = new FacilityConditionData("Test Province", 100, 80, 50, 20);
-        
-        assertEquals("Test Province", data.getProvince());
-        assertEquals(100, data.getExcellent());
-        assertEquals(80, data.getGood());
-        assertEquals(50, data.getFair());
-        assertEquals(20, data.getPoor());
+        when(facilityConditionRepository.findAllByOrderByProvinceAsc())
+                .thenReturn(List.of(data));
+
+        List<FacilityConditionStats> result =
+                facilityConditionService.getFacilityConditionStats();
+
+        assertEquals(1, result.size());
     }
 }
