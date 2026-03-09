@@ -44,6 +44,6 @@ test_backend:
   artifacts:
     when: always
     reports:
-      junit: build/test-results/test/*.xml
+      junit: $BACKEND_DIR/build/test-results/test/**/*.xml
   only:
     - branches
