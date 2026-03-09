@@ -935,7 +935,9 @@ app.get('/stats/condition', (req, res) => {
     res.send(statsHtml);
 });
 
-app.listen(port, () => console.log(`Frontend running on port ${port}`));
+if (require.main === module) {
+  app.listen(port, () => console.log(`Frontend running on port ${port}`));
+}
 
 // export app for testing
 module.exports = app;
