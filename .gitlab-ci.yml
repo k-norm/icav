@@ -41,5 +41,9 @@ test_backend:
   script:
     - cd $BACKEND_DIR
     - gradle test
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/*.xml
   only:
     - branches
