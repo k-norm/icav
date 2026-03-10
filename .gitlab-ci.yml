@@ -21,7 +21,7 @@ lint_backend:
   image: gradle:jdk17
   script:
     - cd $BACKEND_DIR
-    - ./gradlew check
+    - gradle check
   only:
     - branches
 
@@ -40,6 +40,10 @@ test_backend:
   image: gradle:jdk17
   script:
     - cd $BACKEND_DIR
-    - ./gradlew test
+    - gradle test
+  artifacts:
+    when: always
+    reports:
+      junit: $BACKEND_DIR/build/test-results/test/**/*.xml
   only:
     - branches
