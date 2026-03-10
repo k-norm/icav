@@ -1,10 +1,15 @@
-const { COLOURS, getTotal, getMaxTotal, getScale, getSegments, getBarHeights } = require('./StackedBarChart');
-
 const mockFacilityData = [
     { province: 'ON', excellent: 120, good: 200, fair: 80, poor: 30 },
     { province: 'QC', excellent: 90, good: 150, fair: 60, poor: 20 },
     { province: 'BC', excellent: 70, good: 110, fair: 50, poor: 15 },
 ];
+
+const COLOURS = {
+    excellent: '#8884d8',
+    good: '#82ca9d',
+    fair: '#ffc658',
+    poor: '#ff8042',
+};
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -12,6 +17,31 @@ global.fetch = mockFetch;
 beforeEach(() => {
     mockFetch.mockClear();
 });
+
+function getTotal(d) {
+    return d.excellent + d.good + d.fair + d.poor;
+}
+
+function getMaxTotal(data) {
+    return Math.max(...data.map(getTotal));
+}
+
+function getScale(data, height) {
+    return height / getMaxTotal(data);
+}
+
+function getSegments(d) {
+    return [
+        { value: d.excellent, color: COLOURS.excellent, label: 'Excellent' },
+        { value: d.good, color: COLOURS.good, label: 'Good' },
+        { value: d.fair, color: COLOURS.fair, label: 'Fair' },
+        { value: d.poor, color: COLOURS.poor, label: 'Poor' },
+    ];
+}
+
+function getBarHeights(d, scale) {
+    return getSegments(d).map(seg => ({ ...seg, height: seg.value * scale }));
+}
 
 // --- Tests ---
 

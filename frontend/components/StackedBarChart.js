@@ -52,36 +52,4 @@ const StackedBarChart = () => {
   );
 };
 
-const COLOURS = {
-  excellent: '#8884d8',
-  good:      '#82ca9d',
-  fair:      '#ffc658',
-  poor:      '#ff8042',
-};
-
-function getTotal(d) {
-  return d.excellent + d.good + d.fair + d.poor;
-}
-
-function getMaxTotal(data) {
-  return Math.max(...data.map(getTotal));
-}
-
-function getScale(data, height) {
-  return height / getMaxTotal(data);
-}
-
-function getSegments(d) {
-  return [
-    { value: d.excellent, color: COLOURS.excellent, label: 'Excellent' },
-    { value: d.good,      color: COLOURS.good,      label: 'Good'      },
-    { value: d.fair,      color: COLOURS.fair,      label: 'Fair'      },
-    { value: d.poor,      color: COLOURS.poor,      label: 'Poor'      },
-  ];
-}
-
-function getBarHeights(d, scale) {
-  return getSegments(d).map(seg => ({ ...seg, height: seg.value * scale }));
-}
-
-module.exports = { StackedBarChart, COLOURS, getTotal, getMaxTotal, getScale, getSegments, getBarHeights };
+module.exports = StackedBarChart;
