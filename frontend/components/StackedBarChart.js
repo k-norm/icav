@@ -6,7 +6,7 @@ const StackedBarChart = () => {
   const [error, setError] = React.useState(null);
 
   React.useEffect(() => {
-    fetch('http://localhost:8080/api/facilities/condition')
+    fetch('/api/facilities/condition')
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
