@@ -2,7 +2,41 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
+const basePath = (process.env.BASE_PATH || '') .replace(/\/$/, '');
+const backendApi = process.env.BACKEND_PROXY || 'http://backend:8080';
+const apiPrefix = basePath ? `${basePath}/api` : '/api';
+
+// Proxy API requests to backend through this express instance.
+app.use(apiPrefix, async (req, res) => {
+    const targetPath = `${req.originalUrl.replace(basePath, '')}`;
+    const target = `${backendApi}${targetPath}`;
+
+    try {
+        const backendResponse = await fetch(target, {
+            method: req.method,
+            headers: {
+                ...req.headers,
+                host: new URL(backendApi).host,
+            },
+            body: ['GET','HEAD'].includes(req.method) ? undefined : req.body,
+        });
+
+        const body = await backendResponse.text();
+        res.status(backendResponse.status);
+        backendResponse.headers.forEach((value, key) => {
+            if (key.toLowerCase() !== 'content-length') {
+                res.setHeader(key, value);
+            }
+        });
+        res.send(body);
+    } catch (error) {
+        res.status(502).send({ message: 'Bad gateway', error: error.message });
+    }
+});
+
+const mainRouter = express.Router();
+
+mainRouter.get('/', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -71,9 +105,9 @@ app.get('/', (req, res) => {
         <h1>ICAV</h1>
 
         <div class="buttons">
-            <a href="/chart/condition" class="btn">View Chart</a>
-            <a href="/table/condition" class="btn btn-secondary">View Table</a>
-            <a href="/stats/condition" class="btn btn-tertiary">View Statistics</a>
+            <a href="${basePath}/chart/condition" class="btn">View Chart</a>
+            <a href="${basePath}/table/condition" class="btn btn-secondary">View Table</a>
+            <a href="${basePath}/stats/condition" class="btn btn-tertiary">View Statistics</a>
         </div>
     </div>
 </body>
@@ -81,7 +115,7 @@ app.get('/', (req, res) => {
 });
 
 // Route for facility condition data table
-app.get('/table/condition', (req, res) => {
+mainRouter.get('/table/condition', (req, res) => {
     const tableHtml = `
     <!DOCTYPE html>
     <html>
@@ -207,8 +241,8 @@ app.get('/table/condition', (req, res) => {
             <div class="subtitle">Detailed breakdown of facility conditions across Canadian provinces and territories</div>
 
             <div class="nav-buttons">
-                <a href="/" class="btn">Home</a>
-                <a href="/chart/condition" class="btn btn-secondary">View Chart</a>
+                <a href="${basePath}/" class="btn">Home</a>
+                <a href="${basePath}/chart/condition" class="btn btn-secondary">View Chart</a>
             </div>
 
             <div id="table-container" class="loading">Loading data...</div>
@@ -222,7 +256,7 @@ app.get('/table/condition', (req, res) => {
 
         <script>
             // Fetch data from backend API and render table
-            fetch('http://localhost:8080/api/facilities/condition')
+            fetch('${basePath}/api/facilities/condition')
                 .then(res => res.json())
                 .then(data => {
                     renderTable(data);
@@ -272,7 +306,7 @@ app.get('/table/condition', (req, res) => {
 });
 
 // Route for stacked bar chart - Facility Condition by Province
-app.get('/chart/condition', (req, res) => {
+mainRouter.get('/chart/condition', (req, res) => {
     const chartHtml = `
     <!DOCTYPE html>
     <html>
@@ -457,7 +491,7 @@ app.get('/chart/condition', (req, res) => {
 
         <script>
             // Fetch data from backend API and render SVG bar chart
-            fetch('http://localhost:8080/api/facilities/condition')
+            fetch('${basePath}/api/facilities/condition')
                 .then(res => res.json())
                 .then(data => {
                     renderChart(data);
@@ -621,7 +655,7 @@ app.get('/chart/condition', (req, res) => {
 });
 
 // Route for facility condition statistics
-app.get('/stats/condition', (req, res) => {
+mainRouter.get('/stats/condition', (req, res) => {
     const statsHtml = `
     <!DOCTYPE html>
     <html>
@@ -813,9 +847,9 @@ app.get('/stats/condition', (req, res) => {
             </div>
 
             <div class="nav-buttons">
-                <a href="/" class="btn">Home</a>
-                <a href="/chart/condition" class="btn btn-secondary">View Chart</a>
-                <a href="/table/condition" class="btn btn-secondary">View Table</a>
+                <a href="${basePath}/" class="btn">Home</a>
+                <a href="${basePath}/chart/condition" class="btn btn-secondary">View Chart</a>
+                <a href="${basePath}/table/condition" class="btn btn-secondary">View Table</a>
             </div>
 
             <div id="stats-container" class="loading">Loading statistics...</div>
@@ -825,7 +859,7 @@ app.get('/stats/condition', (req, res) => {
 
         <script>
             // Fetch statistics from backend API and render as table
-            fetch('http://localhost:8080/api/facilities/stats')
+            fetch('${basePath}/api/facilities/stats')
                 .then(res => res.json())
                 .then(data => {
                     renderStats(data);
@@ -934,6 +968,11 @@ app.get('/stats/condition', (req, res) => {
     `;
     res.send(statsHtml);
 });
+
+app.use(mainRouter);
+if (basePath) {
+  app.use(basePath, mainRouter);
+}
 
 if (require.main === module) {
   app.listen(port, () => console.log(`Frontend running on port ${port}`));
