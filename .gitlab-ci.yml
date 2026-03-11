@@ -51,18 +51,28 @@ frontend-test:
 # -----------------------
 # Backend: lint, test, build
 # -----------------------
+# backend-lint:
+#   stage: lint
+#   image: gradle:8-jdk17
+#   script:
+#     - cd backend
+#     - ./gradlew check -x checkstyleMain -x checkstyleTest
+#   cache:
+#     key: "${CI_COMMIT_REF_SLUG}"
+#     paths:
+#       - backend/.gradle/
+#   rules:
+#     - when: always
+
 backend-lint:
   stage: lint
-  image: gradle:8-jdk17
+  image: gradle:jdk17
   script:
-    - cd backend
-    - ./gradlew check -x checkstyleMain -x checkstyleTest
-  cache:
-    key: "${CI_COMMIT_REF_SLUG}"
-    paths:
-      - backend/.gradle/
-  rules:
-    - when: always
+    - cd $BACKEND_DIR
+    - gradle check
+  only:
+    - branches
+
 
 backend-test:
   stage: test
