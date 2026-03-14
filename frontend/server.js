@@ -746,7 +746,7 @@ mainRouter.get('/chart/scatter', (req, res) => {
     <body>
         <div class="container">
             <h1>Facility Accessibility vs Condition Analysis</h1>
-            <p class="subtitle">Scatter plot showing % accessible versus % poor condition, with bubble size representing total facilities per province.</p>
+            <p class="subtitle">Scatter plot showing  accessible versus poor condition, with bubble size representing total facilities per province.</p>
             
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
@@ -789,7 +789,7 @@ mainRouter.get('/chart/scatter', (req, res) => {
                 const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 g.setAttribute('transform', 'translate(' + margin.left + ',' + margin.top + ')');
                 
-                // Calculate scales
+                // Calculate scales with padding
                 const xValues = data.map(d => d.accessible_percent);
                 const yValues = data.map(d => d.poor_condition_percent);
                 const sizes = data.map(d => d.total_facilities);
@@ -801,9 +801,17 @@ mainRouter.get('/chart/scatter', (req, res) => {
                 const sizeMin = Math.min(...sizes);
                 const sizeMax = Math.max(...sizes);
                 
+                // Add padding to prevent points from being cut off
+                const xPadding = (xMax - xMin) * 0.1; // 10% padding
+                const yPadding = (yMax - yMin) * 0.1; // 10% padding
+                const xScaleMin = Math.max(0, xMin - xPadding); // Don't go below 0%
+                const xScaleMax = Math.min(100, xMax + xPadding); // Don't go above 100%
+                const yScaleMin = Math.max(0, yMin - yPadding); // Don't go below 0%
+                const yScaleMax = Math.min(100, yMax + yPadding); // Don't go above 100%
+                
                 // Scale functions
-                const xScale = (value) => (value - xMin) / (xMax - xMin) * width;
-                const yScale = (value) => height - (value - yMin) / (yMax - yMin) * height;
+                const xScale = (value) => (value - xScaleMin) / (xScaleMax - xScaleMin) * width;
+                const yScale = (value) => height - (value - yScaleMin) / (yScaleMax - yScaleMin) * height;
                 const sizeScale = (value) => 10 + (value - sizeMin) / (sizeMax - sizeMin) * 40; // Min 10px, max 50px
                 
                 // Draw bubbles
@@ -862,8 +870,8 @@ mainRouter.get('/chart/scatter', (req, res) => {
                 // X-axis ticks and labels
                 const xTicks = 5;
                 for (let i = 0; i <= xTicks; i++) {
-                    const value = xMin + (xMax - xMin) / xTicks * i;
-                    const x = (value - xMin) / (xMax - xMin) * width;
+                    const value = xScaleMin + (xScaleMax - xScaleMin) / xTicks * i;
+                    const x = (value - xScaleMin) / (xScaleMax - xScaleMin) * width;
                     
                     const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     tick.setAttribute('x1', x);
@@ -901,8 +909,8 @@ mainRouter.get('/chart/scatter', (req, res) => {
                 // Y-axis ticks and labels
                 const yTicks = 5;
                 for (let i = 0; i <= yTicks; i++) {
-                    const value = yMin + (yMax - yMin) / yTicks * i;
-                    const y = height - (value - yMin) / (yMax - yMin) * height;
+                    const value = yScaleMin + (yScaleMax - yScaleMin) / yTicks * i;
+                    const y = height - (value - yScaleMin) / (yScaleMax - yScaleMin) * height;
                     
                     const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     tick.setAttribute('x1', 0);

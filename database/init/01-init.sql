@@ -43,13 +43,13 @@ INSERT INTO facility_condition_data (province, excellent, good, fair, poor) VALU
 CREATE TABLE IF NOT EXISTS facility_accessibility_data (
     id INT AUTO_INCREMENT PRIMARY KEY,
     province VARCHAR(100) NOT NULL,
-    accessible INT DEFAULT 0,
-    not_accessible INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `accessible` INT NOT NULL DEFAULT 0,
+    `not_accessible` INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insert facility accessibility data for Canadian provinces (simulated data)
-INSERT INTO facility_accessibility_data (province, accessible, not_accessible) VALUES
+INSERT INTO facility_accessibility_data (province, `accessible`, `not_accessible`) VALUES
 ('Ontario', 1800, 400),
 ('Quebec', 1700, 430),
 ('British Columbia', 1900, 200),
@@ -81,10 +81,10 @@ ORDER BY province;
 CREATE VIEW facility_accessibility_stats AS
 SELECT 
     province,
-    accessible,
-    not_accessible,
-    (accessible + not_accessible) as total_facilities,
-    ROUND((accessible / (accessible + not_accessible)) * 100, 2) as accessible_percent
+    `accessible`,
+    `not_accessible`,
+    (`accessible` + `not_accessible`) as total_facilities,
+    ROUND((`accessible` / (`accessible` + `not_accessible`)) * 100, 2) as accessible_percent
 FROM facility_accessibility_data
 ORDER BY province;
 

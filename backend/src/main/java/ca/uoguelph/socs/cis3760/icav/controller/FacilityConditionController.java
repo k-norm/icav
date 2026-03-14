@@ -39,6 +39,11 @@ public class FacilityConditionController {
      * @return List of facility condition statistics with percentage calculations
      */
     @GetMapping("/stats")
+    public ResponseEntity<List<FacilityConditionStats>> getFacilityConditionStats() {
+        List<FacilityConditionStats> stats = facilityConditionService.getFacilityConditionStats();
+        return ResponseEntity.ok(stats);
+    }
+
     /**
      * GET endpoint to retrieve facility scatter plot data.
      * Returns combined data for accessibility % vs poor condition % with total facilities.
@@ -50,3 +55,4 @@ public class FacilityConditionController {
         List<FacilityScatterData> data = facilityConditionService.getFacilityScatterData();
         return ResponseEntity.ok(data);
     }
+}
