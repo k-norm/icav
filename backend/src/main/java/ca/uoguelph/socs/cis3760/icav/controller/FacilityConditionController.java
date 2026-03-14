@@ -2,6 +2,7 @@ package ca.uoguelph.socs.cis3760.icav.controller;
 
 import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityConditionStats;
+import ca.uoguelph.socs.cis3760.icav.dto.FacilityScatterData;
 import ca.uoguelph.socs.cis3760.icav.service.FacilityConditionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +39,14 @@ public class FacilityConditionController {
      * @return List of facility condition statistics with percentage calculations
      */
     @GetMapping("/stats")
-    public ResponseEntity<List<FacilityConditionStats>> getFacilityConditionStats() {
-        List<FacilityConditionStats> stats = facilityConditionService.getFacilityConditionStats();
-        return ResponseEntity.ok(stats);
+    /**
+     * GET endpoint to retrieve facility scatter plot data.
+     * Returns combined data for accessibility % vs poor condition % with total facilities.
+     *
+     * @return List of facility scatter data for provinces
+     */
+    @GetMapping("/scatter")
+    public ResponseEntity<List<FacilityScatterData>> getFacilityScatterData() {
+        List<FacilityScatterData> data = facilityConditionService.getFacilityScatterData();
+        return ResponseEntity.ok(data);
     }
-}

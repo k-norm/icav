@@ -98,6 +98,12 @@ mainRouter.get('/', (req, res) => {
         .btn-tertiary:hover {
             background-color: #e68900;
         }
+        .btn-quaternary {
+            background-color: #9c27b0;
+        }
+        .btn-quaternary:hover {
+            background-color: #7b1fa2;
+        }
     </style>
 </head>
 <body>
@@ -105,9 +111,10 @@ mainRouter.get('/', (req, res) => {
         <h1>ICAV</h1>
 
         <div class="buttons">
-            <a href="${basePath}/chart/condition" class="btn">View Chart</a>
-            <a href="${basePath}/table/condition" class="btn btn-secondary">View Table</a>
-            <a href="${basePath}/stats/condition" class="btn btn-tertiary">View Statistics</a>
+            <a href="${basePath}/chart/scatter" class="btn">Scatter Plot</a>
+            <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
+            <a href="${basePath}/table/condition" class="btn btn-tertiary">View Table</a>
+            <a href="${basePath}/stats/condition" class="btn btn-quaternary">View Statistics</a>
         </div>
     </div>
 </body>
@@ -242,7 +249,8 @@ mainRouter.get('/table/condition', (req, res) => {
 
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
-                <a href="${basePath}/chart/condition" class="btn btn-secondary">View Chart</a>
+                <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/chart/condition" class="btn btn-tertiary">Condition Chart</a>
             </div>
 
             <div id="table-container" class="loading">Loading data...</div>
@@ -442,8 +450,9 @@ mainRouter.get('/chart/condition', (req, res) => {
             <p>Stacked bar chart showing facility condition mix (Excellent, Good, Fair, Poor) across Canadian provinces and territories.</p>
 
             <div class="nav-buttons">
-                <a href="/" class="btn">Home</a>
-                <a href="/table/condition" class="btn btn-secondary">View Table</a>
+                <a href="${basePath}/" class="btn">Home</a>
+                <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/table/condition" class="btn btn-tertiary">View Table</a>
             </div>
 
             <div id="chart" class="loading">Loading chart data...</div>
@@ -654,6 +663,373 @@ mainRouter.get('/chart/condition', (req, res) => {
     res.send(chartHtml);
 });
 
+// Route for scatter plot - Accessibility vs Poor Condition
+mainRouter.get('/chart/scatter', (req, res) => {
+    const chartHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Facility Accessibility vs Condition Scatter Plot</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/react.production.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/react-dom.production.min.js"></script>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background-color: #f5f5f5;
+                padding: 20px;
+            }
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #333;
+                margin-bottom: 10px;
+                font-size: 2.5em;
+                text-align: center;
+            }
+            .subtitle {
+                color: #666;
+                margin-bottom: 30px;
+                font-size: 1.1em;
+                text-align: center;
+            }
+            .nav-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-bottom: 30px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                background-color: #007bff;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                transition: background-color 0.3s;
+            }
+            .btn:hover {
+                background-color: #0056b3;
+            }
+            .btn-secondary {
+                background-color: #6c757d;
+            }
+            .btn-secondary:hover {
+                background-color: #545b62;
+            }
+            #chart {
+                width: 100%;
+                height: 600px;
+                margin: 0 auto;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .loading {
+                font-size: 1.2em;
+                color: #666;
+            }
+            .error {
+                color: #dc3545;
+                font-size: 1.1em;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Facility Accessibility vs Condition Analysis</h1>
+            <p class="subtitle">Scatter plot showing % accessible versus % poor condition, with bubble size representing total facilities per province.</p>
+            
+            <div class="nav-buttons">
+                <a href="${basePath}/" class="btn">Home</a>
+                <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
+                <a href="${basePath}/stats/condition" class="btn btn-secondary">Statistics</a>
+            </div>
+            
+            <div id="chart" class="loading">Loading scatter plot data...</div>
+        </div>
+        
+        <script>
+            // Fetch data from backend API and render scatter plot
+            fetch('${basePath}/api/facilities/scatter')
+                .then(res => {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.json();
+                })
+                .then(data => {
+                    renderChart(data);
+                })
+                .catch(err => {
+                    document.getElementById('chart').innerHTML = '<div class="error">Error loading data: ' + err.message + '</div>';
+                });
+
+            function renderChart(data) {
+                const chartContainer = document.getElementById('chart');
+                chartContainer.innerHTML = '';
+                
+                // SVG dimensions
+                const margin = { top: 20, right: 120, bottom: 80, left: 80 };
+                const width = 1000 - margin.left - margin.right;
+                const height = 600 - margin.top - margin.bottom;
+                
+                // Create SVG
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', width + margin.left + margin.right);
+                svg.setAttribute('height', height + margin.top + margin.bottom);
+                
+                // Create group for chart area
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+                
+                // Calculate scales
+                const xValues = data.map(d => d.accessible_percent);
+                const yValues = data.map(d => d.poor_condition_percent);
+                const sizes = data.map(d => d.total_facilities);
+                
+                const xMin = Math.min(...xValues);
+                const xMax = Math.max(...xValues);
+                const yMin = Math.min(...yValues);
+                const yMax = Math.max(...yValues);
+                const sizeMin = Math.min(...sizes);
+                const sizeMax = Math.max(...sizes);
+                
+                // Scale functions
+                const xScale = (value) => (value - xMin) / (xMax - xMin) * width;
+                const yScale = (value) => height - (value - yMin) / (yMax - yMin) * height;
+                const sizeScale = (value) => 10 + (value - sizeMin) / (sizeMax - sizeMin) * 40; // Min 10px, max 50px
+                
+                // Draw bubbles
+                data.forEach(d => {
+                    const cx = xScale(d.accessible_percent);
+                    const cy = yScale(d.poor_condition_percent);
+                    const r = sizeScale(d.total_facilities);
+                    
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', cx);
+                    circle.setAttribute('cy', cy);
+                    circle.setAttribute('r', r);
+                    circle.setAttribute('fill', '#8884d8');
+                    circle.setAttribute('fill-opacity', '0.6');
+                    circle.setAttribute('stroke', '#666');
+                    circle.setAttribute('stroke-width', '2');
+                    
+                    // Add hover effect
+                    circle.style.cursor = 'pointer';
+                    circle.addEventListener('mouseover', function() {
+                        this.setAttribute('fill-opacity', '1');
+                        showTooltip(event, d);
+                    });
+                    circle.addEventListener('mouseout', function() {
+                        this.setAttribute('fill-opacity', '0.6');
+                        hideTooltip();
+                    });
+                    
+                    g.appendChild(circle);
+                    
+                    // Add province label
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', cx);
+                    text.setAttribute('y', cy - r - 5);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('font-size', '12px');
+                    text.setAttribute('fill', '#333');
+                    text.textContent = d.province;
+                    g.appendChild(text);
+                });
+                
+                // X-axis
+                const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                xAxis.setAttribute('transform', 'translate(0,' + height + ')');
+                
+                // X-axis line
+                const xLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                xLine.setAttribute('x1', 0);
+                xLine.setAttribute('x2', width);
+                xLine.setAttribute('y1', 0);
+                xLine.setAttribute('y2', 0);
+                xLine.setAttribute('stroke', '#333');
+                xLine.setAttribute('stroke-width', '2');
+                xAxis.appendChild(xLine);
+                
+                // X-axis ticks and labels
+                const xTicks = 5;
+                for (let i = 0; i <= xTicks; i++) {
+                    const value = xMin + (xMax - xMin) / xTicks * i;
+                    const x = (value - xMin) / (xMax - xMin) * width;
+                    
+                    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    tick.setAttribute('x1', x);
+                    tick.setAttribute('x2', x);
+                    tick.setAttribute('y1', 0);
+                    tick.setAttribute('y2', 5);
+                    tick.setAttribute('stroke', '#333');
+                    xAxis.appendChild(tick);
+                    
+                    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    label.setAttribute('x', x);
+                    label.setAttribute('y', 20);
+                    label.setAttribute('text-anchor', 'middle');
+                    label.setAttribute('font-size', '12px');
+                    label.setAttribute('fill', '#666');
+                    label.textContent = value.toFixed(1) + '%';
+                    xAxis.appendChild(label);
+                }
+                
+                g.appendChild(xAxis);
+                
+                // Y-axis
+                const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                
+                // Y-axis line
+                const yLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                yLine.setAttribute('x1', 0);
+                yLine.setAttribute('x2', 0);
+                yLine.setAttribute('y1', 0);
+                yLine.setAttribute('y2', height);
+                yLine.setAttribute('stroke', '#333');
+                yLine.setAttribute('stroke-width', '2');
+                yAxis.appendChild(yLine);
+                
+                // Y-axis ticks and labels
+                const yTicks = 5;
+                for (let i = 0; i <= yTicks; i++) {
+                    const value = yMin + (yMax - yMin) / yTicks * i;
+                    const y = height - (value - yMin) / (yMax - yMin) * height;
+                    
+                    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    tick.setAttribute('x1', 0);
+                    tick.setAttribute('x2', -5);
+                    tick.setAttribute('y1', y);
+                    tick.setAttribute('y2', y);
+                    tick.setAttribute('stroke', '#333');
+                    yAxis.appendChild(tick);
+                    
+                    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    label.setAttribute('x', -10);
+                    label.setAttribute('y', y + 4);
+                    label.setAttribute('text-anchor', 'end');
+                    label.setAttribute('font-size', '12px');
+                    label.setAttribute('fill', '#666');
+                    label.textContent = value.toFixed(1) + '%';
+                    yAxis.appendChild(label);
+                }
+                
+                g.appendChild(yAxis);
+                
+                // Axis labels
+                const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                xLabel.setAttribute('x', width / 2);
+                xLabel.setAttribute('y', height + 50);
+                xLabel.setAttribute('text-anchor', 'middle');
+                xLabel.setAttribute('font-size', '14px');
+                xLabel.setAttribute('fill', '#333');
+                xLabel.textContent = '% Accessible Facilities';
+                g.appendChild(xLabel);
+                
+                const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                yLabel.setAttribute('x', -height / 2);
+                yLabel.setAttribute('y', -50);
+                yLabel.setAttribute('text-anchor', 'middle');
+                yLabel.setAttribute('font-size', '14px');
+                yLabel.setAttribute('fill', '#333');
+                yLabel.setAttribute('transform', 'rotate(-90)');
+                yLabel.textContent = '% Facilities in Poor Condition';
+                g.appendChild(yLabel);
+                
+                // Legend for bubble size
+                const legend = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                legend.setAttribute('transform', 'translate(' + (width + 20) + ', 50)');
+                
+                const legendTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                legendTitle.setAttribute('x', 0);
+                legendTitle.setAttribute('y', 0);
+                legendTitle.setAttribute('font-size', '12px');
+                legendTitle.setAttribute('fill', '#333');
+                legendTitle.setAttribute('font-weight', 'bold');
+                legendTitle.textContent = 'Total Facilities';
+                legend.appendChild(legendTitle);
+                
+                // Legend circles
+                const legendSizes = [sizeMin, (sizeMin + sizeMax) / 2, sizeMax];
+                legendSizes.forEach((size, i) => {
+                    const cy = 20 + i * 40;
+                    const r = sizeScale(size);
+                    
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', r);
+                    circle.setAttribute('cy', cy);
+                    circle.setAttribute('r', r);
+                    circle.setAttribute('fill', '#8884d8');
+                    circle.setAttribute('fill-opacity', '0.6');
+                    circle.setAttribute('stroke', '#666');
+                    circle.setAttribute('stroke-width', '1');
+                    legend.appendChild(circle);
+                    
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', r * 2 + 10);
+                    text.setAttribute('y', cy + 4);
+                    text.setAttribute('font-size', '11px');
+                    text.setAttribute('fill', '#666');
+                    text.textContent = Math.round(size);
+                    legend.appendChild(text);
+                });
+                
+                g.appendChild(legend);
+                
+                svg.appendChild(g);
+                chartContainer.appendChild(svg);
+            }
+            
+            function showTooltip(e, d) {
+                // Create tooltip
+                let tooltip = document.getElementById('tooltip');
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.id = 'tooltip';
+                    tooltip.style.position = 'absolute';
+                    tooltip.style.background = 'rgba(0,0,0,0.8)';
+                    tooltip.style.color = 'white';
+                    tooltip.style.padding = '8px';
+                    tooltip.style.borderRadius = '4px';
+                    tooltip.style.fontSize = '12px';
+                    tooltip.style.pointerEvents = 'none';
+                    tooltip.style.zIndex = '1000';
+                    document.body.appendChild(tooltip);
+                }
+                
+                tooltip.innerHTML = \`
+                    <strong>\${d.province}</strong><br>
+                    Accessible: \${d.accessible_percent.toFixed(1)}%<br>
+                    Poor Condition: \${d.poor_condition_percent.toFixed(1)}%<br>
+                    Total Facilities: \${d.total_facilities}
+                \`;
+                
+                tooltip.style.left = (e.pageX + 10) + 'px';
+                tooltip.style.top = (e.pageY - 10) + 'px';
+                tooltip.style.display = 'block';
+            }
+            
+            function hideTooltip() {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                }
+            }
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(chartHtml);
+});
+
 // Route for facility condition statistics
 mainRouter.get('/stats/condition', (req, res) => {
     const statsHtml = `
@@ -848,8 +1224,9 @@ mainRouter.get('/stats/condition', (req, res) => {
 
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
-                <a href="${basePath}/chart/condition" class="btn btn-secondary">View Chart</a>
-                <a href="${basePath}/table/condition" class="btn btn-secondary">View Table</a>
+                <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/chart/condition" class="btn btn-tertiary">Condition Chart</a>
+                <a href="${basePath}/table/condition" class="btn btn-quaternary">View Table</a>
             </div>
 
             <div id="stats-container" class="loading">Loading statistics...</div>

@@ -2,12 +2,24 @@ package ca.uoguelph.socs.cis3760.icav.service;
 
 import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityConditionStats;
+import ca.uoguelph.socs.cis3760.icav.dto.FacilityScatterData;
 import ca.uoguelph.socs.cis3760.icav.repository.FacilityConditionRepository;
+import ca.uoguelph.socs.cis3760.icav.repository.FacilityAccessibilityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+@Service
+public class FacilityConditionService {
+
+    @Autowired
+    private FacilityConditionRepository facilityConditionRepository;
+
+    @Autowired
+    private FacilityAccessibilityRepository facilityAccessibilityRepository;
 
 @Service
 public class FacilityConditionService {
@@ -53,6 +65,41 @@ public class FacilityConditionService {
                     Math.round(poorPercent * 100.0) / 100.0
                 );
             })
+    /**
+     * Calculates facility scatter plot data combining accessibility and condition.
+     * Returns data for provinces with accessible %, poor condition %, and total facilities.
+     * 
+     * @return List of FacilityScatterData for scatter plot
+     */
+    public List<FacilityScatterData> getFacilityScatterData() {
+        List<FacilityConditionData> conditionData = facilityConditionRepository.findAllByOrderByProvinceAsc();
+        List<ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData> accessibilityData = facilityAccessibilityRepository.findAllByOrderByProvinceAsc();
+        
+        // Create maps for easy lookup
+        Map<String, FacilityConditionData> conditionMap = conditionData.stream()
+            .collect(Collectors.toMap(FacilityConditionData::getProvince, data -> data));
+        
+        Map<String, ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData> accessibilityMap = accessibilityData.stream()
+            .collect(Collectors.toMap(ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData::getProvince, data -> data));
+        
+        return conditionMap.keySet().stream()
+            .filter(province -> accessibilityMap.containsKey(province))
+            .map(province -> {
+                FacilityConditionData cond = conditionMap.get(province);
+                ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData acc = accessibilityMap.get(province);
+                
+                int totalCondition = cond.getExcellent() + cond.getGood() + cond.getFair() + cond.getPoor();
+                double poorPercent = (double) cond.getPoor() / totalCondition * 100;
+                
+                int totalAccessibility = acc.getAccessible() + acc.getNotAccessible();
+                double accessiblePercent = (double) acc.getAccessible() / totalAccessibility * 100;
+                
+                return new FacilityScatterData(
+                    province,
+                    Math.round(accessiblePercent * 100.0) / 100.0,
+                    Math.round(poorPercent * 100.0) / 100.0,
+                    totalCondition  // Using condition total as total facilities
+                );
+            })
             .collect(Collectors.toList());
     }
-}

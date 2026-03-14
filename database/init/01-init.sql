@@ -39,6 +39,28 @@ INSERT INTO facility_condition_data (province, excellent, good, fair, poor) VALU
 ('Prince Edward Island', 450, 380, 220, 50),
 ('Newfoundland and Labrador', 620, 510, 350, 120);
 
+-- Facility Accessibility Data Table
+CREATE TABLE IF NOT EXISTS facility_accessibility_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    province VARCHAR(100) NOT NULL,
+    accessible INT DEFAULT 0,
+    not_accessible INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert facility accessibility data for Canadian provinces (simulated data)
+INSERT INTO facility_accessibility_data (province, accessible, not_accessible) VALUES
+('Ontario', 1800, 400),
+('Quebec', 1700, 430),
+('British Columbia', 1900, 200),
+('Alberta', 1850, 320),
+('Manitoba', 1600, 200),
+('Saskatchewan', 1500, 150),
+('Nova Scotia', 1300, 200),
+('New Brunswick', 1200, 100),
+('Prince Edward Island', 1000, 100),
+('Newfoundland and Labrador', 1400, 200);
+
 -- Create view for facility condition statistics
 CREATE VIEW facility_condition_stats AS
 SELECT 
@@ -53,6 +75,17 @@ SELECT
     ROUND((fair / (excellent + good + fair + poor)) * 100, 2) as fair_percent,
     ROUND((poor / (excellent + good + fair + poor)) * 100, 2) as poor_percent
 FROM facility_condition_data
+ORDER BY province;
+
+-- Create view for facility accessibility statistics
+CREATE VIEW facility_accessibility_stats AS
+SELECT 
+    province,
+    accessible,
+    not_accessible,
+    (accessible + not_accessible) as total_facilities,
+    ROUND((accessible / (accessible + not_accessible)) * 100, 2) as accessible_percent
+FROM facility_accessibility_data
 ORDER BY province;
 
 -- Placeholder for future feature tables
