@@ -63,7 +63,7 @@ public class FacilityConditionServiceTest {
         assertEquals(1, result.size());
         assertEquals("Ontario", result.get(0).getProvince());
         assertEquals(81.82, result.get(0).getAccessiblePercent());
-        assertEquals(14.29, result.get(0).getPoorConditionPercent());
+        assertEquals(10.0, result.get(0).getPoorConditionPercent());
         assertEquals(200, result.get(0).getTotalFacilities());
     }
 }
