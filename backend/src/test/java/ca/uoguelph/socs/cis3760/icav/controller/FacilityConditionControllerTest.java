@@ -3,6 +3,7 @@ package ca.uoguelph.socs.cis3760.icav.controller;
 import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
 import ca.uoguelph.socs.cis3760.icav.service.FacilityConditionService;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityConditionStats;
+import ca.uoguelph.socs.cis3760.icav.dto.FacilityScatterData;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,19 @@ public class FacilityConditionControllerTest {
 
         ResponseEntity<List<FacilityConditionStats>> response =
                 facilityConditionController.getFacilityConditionStats();
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertTrue(response.getBody().isEmpty());
+    }
+
+    @Test
+    void testGetFacilityScatterData_ReturnsData() {
+        when(facilityConditionService.getFacilityScatterData())
+                .thenReturn(List.of());
+
+        ResponseEntity<List<FacilityScatterData>> response =
+                facilityConditionController.getFacilityScatterData();
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCodeValue());
