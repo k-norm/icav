@@ -3,6 +3,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.5'
     id 'java'
     id 'jacoco'
+    id 'checkstyle'
 }
 
 group = 'ca.uoguelph.socs.cis3760.icav'
@@ -11,6 +12,12 @@ version = '0.0.1-SNAPSHOT'
 jacoco {
     toolVersion = "0.8.11"
 }
+
+checkstyle{
+    toolVersion = "10.3.4"
+    configFile = file("checkstyle.xml")
+}
+
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
