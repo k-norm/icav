@@ -155,7 +155,7 @@ describe('API proxy', () => {
             headers: { forEach: jest.fn() },
         });
  
-        const res = await request(app).get('/api/facilities/stats');
+        await request(app).get('/api/facilities/stats');
         expect(global.fetch).toHaveBeenCalledWith(
             expect.stringContaining('/api/facilities/stats'),
             expect.any(Object)
@@ -169,7 +169,7 @@ describe('API proxy', () => {
             headers: { forEach: jest.fn() },
         });
  
-        const res = await request(app).get('/api/facilities/scatter');
+        await request(app).get('/api/facilities/scatter');
         expect(global.fetch).toHaveBeenCalledWith(
             expect.stringContaining('/api/facilities/scatter'),
             expect.any(Object)
