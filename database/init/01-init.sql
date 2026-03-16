@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Insert sample data
-INSERT INTO users (name, email) VALUES ('Admin User', 'admin@icav.local');
+INSERT IGNORE INTO users (name, email) VALUES ('Admin User', 'admin@icav.local');
 
 -- Facility Condition Data Table
 CREATE TABLE IF NOT EXISTS facility_condition_data (
@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS facility_condition_data (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert facility condition data for Canadian provinces
-INSERT INTO facility_condition_data (province, excellent, good, fair, poor) VALUES
+-- Insert facility condition data for Canadian provinces (only if not exists)
+INSERT IGNORE INTO facility_condition_data (province, excellent, good, fair, poor) VALUES
 ('Ontario', 850, 720, 480, 150),
 ('Quebec', 780, 650, 520, 180),
 ('British Columbia', 920, 680, 390, 110),
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS facility_accessibility_data (
 );
 
 -- Insert facility accessibility data for Canadian provinces (simulated data)
-INSERT INTO facility_accessibility_data (province, `accessible`, `not_accessible`) VALUES
+INSERT IGNORE INTO facility_accessibility_data (province, `accessible`, `not_accessible`) VALUES
 ('Ontario', 1800, 400),
 ('Quebec', 1700, 430),
 ('British Columbia', 1900, 200),
