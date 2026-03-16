@@ -1,7 +1,12 @@
 package ca.uoguelph.socs.cis3760.icav.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
 
 @Entity
 @Table(name = "facility_accessibility_data")
@@ -60,7 +65,7 @@ public class FacilityAccessibilityData {
     }
 
     public double getAccessiblePercent() {
-        int total = getTotal();
+        final int total = getTotal();
         return total == 0 ? 0 : Math.round((accessible / (double) total) * 100 * 100.0) / 100.0;
     }
 }

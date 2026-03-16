@@ -5,7 +5,10 @@ import ca.uoguelph.socs.cis3760.icav.dto.FacilityAccessibilityStats;
 import ca.uoguelph.socs.cis3760.icav.service.FacilityAccessibilityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
 
@@ -26,7 +29,7 @@ public class FacilityAccessibilityController {
      */
     @GetMapping("/accessibility")
     public ResponseEntity<List<FacilityAccessibilityData>> getFacilityAccessibility() {
-        List<FacilityAccessibilityData> data = facilityAccessibilityService.getFacilityAccessibilityByProvince();
+       final List<FacilityAccessibilityData> data = facilityAccessibilityService.getFacilityAccessibilityByProvince();
         return ResponseEntity.ok(data);
     }
 
@@ -39,7 +42,7 @@ public class FacilityAccessibilityController {
      */
     @GetMapping("/accessibility/stats")
     public ResponseEntity<List<FacilityAccessibilityStats>> getFacilityAccessibilityStats() {
-        List<FacilityAccessibilityStats> stats = facilityAccessibilityService.getFacilityAccessibilityStats();
+        final List<FacilityAccessibilityStats> stats = facilityAccessibilityService.getFacilityAccessibilityStats();
         return ResponseEntity.ok(stats);
     }
 }

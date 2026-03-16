@@ -34,8 +34,8 @@ public class FacilityAccessibilityService {
     public List<FacilityAccessibilityStats> getFacilityAccessibilityStats() {
         return facilityAccessibilityRepository.findAllByOrderByProvinceAsc().stream()
             .map(data -> {
-                int total = data.getAccessible() + data.getNotAccessible();
-                double accessiblePercent = (double) data.getAccessible() / total * 100;
+                final int total = data.getAccessible() + data.getNotAccessible();
+                final double accessiblePercent = (double) data.getAccessible() / total * 100;
 
                 return new FacilityAccessibilityStats(
                     data.getProvince(),

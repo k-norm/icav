@@ -6,7 +6,10 @@ import ca.uoguelph.socs.cis3760.icav.dto.FacilityScatterData;
 import ca.uoguelph.socs.cis3760.icav.service.FacilityConditionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
 
@@ -27,7 +30,7 @@ public class FacilityConditionController {
      */
     @GetMapping("/condition")
     public ResponseEntity<List<FacilityConditionData>> getFacilityCondition() {
-        List<FacilityConditionData> data = facilityConditionService.getFacilityConditionByProvince();
+        final List<FacilityConditionData> data = facilityConditionService.getFacilityConditionByProvince();
         return ResponseEntity.ok(data);
     }
 
@@ -40,7 +43,7 @@ public class FacilityConditionController {
      */
     @GetMapping("/stats")
     public ResponseEntity<List<FacilityConditionStats>> getFacilityConditionStats() {
-        List<FacilityConditionStats> stats = facilityConditionService.getFacilityConditionStats();
+        final List<FacilityConditionStats> stats = facilityConditionService.getFacilityConditionStats();
         return ResponseEntity.ok(stats);
     }
 
@@ -52,7 +55,7 @@ public class FacilityConditionController {
      */
     @GetMapping("/scatter")
     public ResponseEntity<List<FacilityScatterData>> getFacilityScatterData() {
-        List<FacilityScatterData> data = facilityConditionService.getFacilityScatterData();
+        final List<FacilityScatterData> data = facilityConditionService.getFacilityScatterData();
         return ResponseEntity.ok(data);
     }
 }

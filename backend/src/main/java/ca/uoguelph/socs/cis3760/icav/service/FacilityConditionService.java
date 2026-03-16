@@ -40,11 +40,11 @@ public class FacilityConditionService {
     public List<FacilityConditionStats> getFacilityConditionStats() {
         return facilityConditionRepository.findAllByOrderByProvinceAsc().stream()
             .map(data -> {
-                int total = data.getExcellent() + data.getGood() + data.getFair() + data.getPoor();
-                double excellentPercent = (double) data.getExcellent() / total * 100;
-                double goodPercent = (double) data.getGood() / total * 100;
-                double fairPercent = (double) data.getFair() / total * 100;
-                double poorPercent = (double) data.getPoor() / total * 100;
+                final int total = data.getExcellent() + data.getGood() + data.getFair() + data.getPoor();
+                final double excellentPercent = (double) data.getExcellent() / total * 100;
+                final double goodPercent = (double) data.getGood() / total * 100;
+                final double fairPercent = (double) data.getFair() / total * 100;
+                final double poorPercent = (double) data.getPoor() / total * 100;
 
                 return new FacilityConditionStats(
                     data.getProvince(),
@@ -69,27 +69,30 @@ public class FacilityConditionService {
      * @return List of FacilityScatterData for scatter plot
      */
     public List<FacilityScatterData> getFacilityScatterData() {
-        List<FacilityConditionData> conditionData = facilityConditionRepository.findAllByOrderByProvinceAsc();
-        List<ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData> accessibilityData = facilityAccessibilityRepository.findAllByOrderByProvinceAsc();
+        final List<FacilityConditionData> conditionData = facilityConditionRepository.findAllByOrderByProvinceAsc();
+        final List<ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData> accessibilityData = 
+            facilityAccessibilityRepository.findAllByOrderByProvinceAsc();
 
         // Create maps for easy lookup
-        Map<String, FacilityConditionData> conditionMap = conditionData.stream()
+        final Map<String, FacilityConditionData> conditionMap = conditionData.stream()
             .collect(Collectors.toMap(FacilityConditionData::getProvince, data -> data));
 
-        Map<String, ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData> accessibilityMap = accessibilityData.stream()
-            .collect(Collectors.toMap(ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData::getProvince, data -> data));
+        final Map<String, ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData> accessibilityMap = 
+            accessibilityData.stream().collect(Collectors.toMap(
+                        ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData::getProvince, data -> data));
 
         return conditionMap.keySet().stream()
             .filter(province -> accessibilityMap.containsKey(province))
             .map(province -> {
-                FacilityConditionData cond = conditionMap.get(province);
-                ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData acc = accessibilityMap.get(province);
+                final FacilityConditionData cond = conditionMap.get(province);
+                final ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData acc = accessibilityMap
+                        .get(province);
 
-                int totalCondition = cond.getExcellent() + cond.getGood() + cond.getFair() + cond.getPoor();
-                double poorPercent = (double) cond.getPoor() / totalCondition * 100;
+                final int totalCondition = cond.getExcellent() + cond.getGood() + cond.getFair() + cond.getPoor();
+                final double poorPercent = (double) cond.getPoor() / totalCondition * 100;
 
-                int totalAccessibility = acc.getAccessible() + acc.getNotAccessible();
-                double accessiblePercent = (double) acc.getAccessible() / totalAccessibility * 100;
+                final int totalAccessibility = acc.getAccessible() + acc.getNotAccessible();
+                final double accessiblePercent = (double) acc.getAccessible() / totalAccessibility * 100;
 
                 return new FacilityScatterData(
                     province,

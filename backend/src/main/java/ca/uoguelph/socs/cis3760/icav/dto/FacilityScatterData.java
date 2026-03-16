@@ -17,7 +17,8 @@ public class FacilityScatterData {
 
     public FacilityScatterData() {}
 
-    public FacilityScatterData(String province, double accessiblePercent, double poorConditionPercent, int totalFacilities) {
+    public FacilityScatterData(String province, double accessiblePercent, double poorConditionPercent, 
+                               int totalFacilities) {
         this.province = province;
         this.accessiblePercent = accessiblePercent;
         this.poorConditionPercent = poorConditionPercent;
