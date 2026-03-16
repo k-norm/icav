@@ -34,7 +34,7 @@ services:
       - "3000:3000"
     environment:
       - BACKEND_PROXY=http://backend:8080
-      - BASE_PATH=/saffron
+      
     networks:
       - backend-frontend
     depends_on:
