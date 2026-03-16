@@ -73,10 +73,10 @@ function getScale(data, height) {
 
 function getSegments(d) {
   return [
-    { value: d.excellent, color: COLOURS.excellent, label: 'Excellent' },
-    { value: d.good,      color: COLOURS.good,      label: 'Good'      },
-    { value: d.fair,      color: COLOURS.fair,      label: 'Fair'      },
-    { value: d.poor,      color: COLOURS.poor,      label: 'Poor'      },
+    { value: d.excellent, colour: COLOURS.excellent, label: 'Excellent' },
+    { value: d.good,      colour: COLOURS.good,      label: 'Good'      },
+    { value: d.fair,      colour: COLOURS.fair,      label: 'Fair'      },
+    { value: d.poor,      colour: COLOURS.poor,      label: 'Poor'      },
   ];
 }
 
@@ -84,4 +84,4 @@ function getBarHeights(d, scale) {
   return getSegments(d).map(seg => ({ ...seg, height: seg.value * scale }));
 }
 
-module.exports = { StackedBarChart, COLOURS, getTotal, getMaxTotal, getScale, getSegments, getBarHeights };
+module.exports = { StackedBarChart, COLOURS, getScale, getSegments, getBarHeights };
