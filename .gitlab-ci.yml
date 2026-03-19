@@ -1,45 +1,89 @@
+# CI pipeline: lint, test, build, and conditional deploy to main/development
 stages:
+  - setup
   - lint
   - test
-
-variables:
-  FRONTEND_DIR: frontend
-  BACKEND_DIR: backend
-
-lint_frontend:
+  - build
+# -----------------------
+# Frontend: setup, lint, test
+# -----------------------
+frontend-setup:
+  stage: setup
+  image: node:18
+  cache:
+    paths:
+      - frontend/node_modules/
+  script:
+    - cd frontend
+    - '[ -f package-lock.json ] && npm ci || npm install'
+  rules:
+    - when: always
+frontend-lint:
   stage: lint
   image: node:18
   script:
-    - cd $FRONTEND_DIR
-    - npm install
-    - npm run lint
-  only:
-    - branches
-
-lint_backend:
-  stage: lint
-  image: gradle:jdk17
-  script:
-    - cd $BACKEND_DIR
-    - gradle check
-  only:
-    - branches
-
-test_frontend:
+    - cd frontend
+    - '[ -f package-lock.json ] && npm ci || npm install'
+    - npm run lint --if-present
+  rules:
+    - when: always
+frontend-test:
   stage: test
   image: node:18
   script:
-    - cd $FRONTEND_DIR
-    - npm install
-    - npm test
-  only:
-    - branches
-
-test_backend:
-  stage: test
-  image: gradle:jdk17
+    - cd frontend
+    - '[ -f package-lock.json ] && npm ci || npm install'
+    - CI=true npm test --if-present --silent -- --passWithNoTests --coverage
+  artifacts:
+    when: always
+    reports:
+      junit: frontend/test-results/*.xml
+    paths:
+      - frontend/coverage/
+  rules:
+    - when: always
+# -----------------------
+# Backend: lint, test, build
+# -----------------------
+backend-lint:
+  stage: lint
+  image: gradle:8-jdk17
   script:
-    - cd $BACKEND_DIR
-    - gradle test
-  only:
-    - branches
+    - cd backend
+    - ./gradlew check -x checkstyleMain -x checkstyleTest
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+      - backend/.gradle/
+  rules:
+    - when: always
+backend-test:
+  stage: test
+  image: gradle:8-jdk17
+  coverage: '/Total.*?([0-9]{1,3})%/'
+
+  script:
+    - cd backend
+    - ./gradlew test
+    - awk -F "," '{ instructions += $4 + $5; covered += $5 } END { print covered, "/", instructions, " instructions covered"; print "Total coverage:", 100*covered/instructions,  "%"}' build/reports/jacoco/test/jacocoTestReport.csv
+  artifacts:
+    when: always
+    reports:
+      junit: backend/build/test-results/test/*.xml
+    paths:
+      - backend/build/test-results/
+      - backend/build/reports/tests/
+      - backend/build/reports/jacoco/test/jacocoTestReport.csv
+  rules:
+    - when: always
+backend-build:
+  stage: build
+  image: gradle:8-jdk17
+  script:
+    - cd backend
+    - ./gradlew clean bootJar
+  artifacts:
+    paths:
+      - backend/build/libs/*.jar
+  rules:
+    - when: always
