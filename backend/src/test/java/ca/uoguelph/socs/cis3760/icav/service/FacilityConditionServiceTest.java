@@ -2,6 +2,7 @@ package ca.uoguelph.socs.cis3760.icav.service;
 
 import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityConditionStats;
+import ca.uoguelph.socs.cis3760.icav.dto.FacilityHeatmapData;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityScatterData;
 import ca.uoguelph.socs.cis3760.icav.repository.FacilityConditionRepository;
 import ca.uoguelph.socs.cis3760.icav.repository.FacilityAccessibilityRepository;
@@ -64,6 +65,22 @@ public class FacilityConditionServiceTest {
         assertEquals("Ontario", result.get(0).getProvince());
         assertEquals(81.82, result.get(0).getAccessiblePercent());
         assertEquals(10.0, result.get(0).getPoorConditionPercent());
+        assertEquals(200, result.get(0).getTotalFacilities());
+    }
+
+    @Test
+    void testGetFacilityHeatmapData() {
+        FacilityConditionData conditionData = new FacilityConditionData("Ontario", 100, 50, 30, 20);
+
+        when(facilityConditionRepository.findAllByOrderByProvinceAsc())
+                .thenReturn(List.of(conditionData));
+
+        List<FacilityHeatmapData> result = facilityConditionService.getFacilityHeatmapData();
+
+        assertEquals(1, result.size());
+        assertEquals("Ontario", result.get(0).getProvince());
+        assertEquals(50.0, result.get(0).getExcellentPercent());
+        assertEquals(10.0, result.get(0).getPoorPercent());
         assertEquals(200, result.get(0).getTotalFacilities());
     }
 }

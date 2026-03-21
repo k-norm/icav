@@ -2,6 +2,7 @@ package ca.uoguelph.socs.cis3760.icav.controller;
 
 import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityConditionStats;
+import ca.uoguelph.socs.cis3760.icav.dto.FacilityHeatmapData;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityScatterData;
 import ca.uoguelph.socs.cis3760.icav.service.FacilityConditionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,18 @@ public class FacilityConditionController {
     @GetMapping("/scatter")
     public ResponseEntity<List<FacilityScatterData>> getFacilityScatterData() {
         final List<FacilityScatterData> data = facilityConditionService.getFacilityScatterData();
+        return ResponseEntity.ok(data);
+    }
+
+    /**
+     * GET endpoint to retrieve facility heatmap data.
+     * Returns excellent and poor condition percentage per province.
+     *
+     * @return List of FacilityHeatmapData for the heatmap visualization
+     */
+    @GetMapping("/heatmap")
+    public ResponseEntity<List<FacilityHeatmapData>> getFacilityHeatmapData() {
+        final List<FacilityHeatmapData> data = facilityConditionService.getFacilityHeatmapData();
         return ResponseEntity.ok(data);
     }
 }

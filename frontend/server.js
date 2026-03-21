@@ -113,6 +113,7 @@ mainRouter.get('/', (req, res) => {
         <div class="buttons">
             <a href="${basePath}/chart/scatter" class="btn">Scatter Plot</a>
             <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
+            <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
             <a href="${basePath}/table/condition" class="btn btn-tertiary">View Table</a>
             <a href="${basePath}/stats/condition" class="btn btn-quaternary">View Statistics</a>
         </div>
@@ -452,6 +453,7 @@ mainRouter.get('/chart/condition', (req, res) => {
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
                 <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
                 <a href="${basePath}/table/condition" class="btn btn-tertiary">View Table</a>
             </div>
 
@@ -751,6 +753,7 @@ mainRouter.get('/chart/scatter', (req, res) => {
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
                 <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
+                <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
                 <a href="${basePath}/stats/condition" class="btn btn-secondary">Statistics</a>
             </div>
             
@@ -1036,6 +1039,182 @@ mainRouter.get('/chart/scatter', (req, res) => {
     </html>
     `;
     res.send(chartHtml);
+});
+
+// Route for facility heatmap - Facility condition by province
+// Data is represented by poor/excellent color intensity.
+mainRouter.get('/chart/heatmap', (req, res) => {
+    const heatmapHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Facility Condition Heatmap</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background-color: #f5f5f5;
+                padding: 20px;
+            }
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #333;
+                margin-bottom: 10px;
+                font-size: 2.5em;
+                text-align: center;
+            }
+            .subtitle {
+                color: #666;
+                margin-bottom: 20px;
+                font-size: 1.1em;
+                text-align: center;
+            }
+            .nav-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-bottom: 30px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                background: #667eea;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+            }
+            .btn:hover {
+                background: #5a67d8;
+            }
+            #heatmap {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(180px, 1fr));
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            .province-card {
+                padding: 12px;
+                border-radius: 8px;
+                color: #fff;
+                border: 1px solid rgba(0,0,0,0.1);
+                min-height: 90px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            .province-name {
+                font-weight: 700;
+                font-size: 1rem;
+                margin-bottom: 6px;
+            }
+            .province-stats {
+                font-size: 0.9rem;
+                line-height: 1.3;
+            }
+            .legend {
+                margin-top: 15px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+            }
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 0.9rem;
+                color: #333;
+            }
+            .legend-color {
+                width: 24px;
+                height: 24px;
+                border-radius: 4px;
+                border: 1px solid rgba(0,0,0,0.15);
+            }
+            .loading {
+                text-align: center;
+                padding: 60px;
+                font-size: 1.2em;
+                color: #666;
+            }
+            .error {
+                color: #d32f2f;
+                font-weight: bold;
+                padding: 15px;
+                background-color: #ffebee;
+                border-radius: 4px;
+                margin: 20px 0;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Facility Condition Heatmap</h1>
+            <p class="subtitle">Color intensity indicates poor condition percentage (red = higher poor, green = higher excellent).</p>
+            <div class="nav-buttons">
+                <a href="${basePath}/" class="btn">Home</a>
+                <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
+                <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/stats/condition" class="btn btn-secondary">Statistics</a>
+            </div>
+
+            <div id="heatmap" class="loading">Loading heatmap data...</div>
+            <div class="legend" id="heatmapLegend"></div>
+        </div>
+
+        <script>
+            function poorToColor(poorPercent) {
+                // Red intensity by poor condition percent (0 = green, 100 = red)
+                const hue = Math.round((100 - poorPercent) * 120 / 100); // 120 green -> 0 red
+                return 'hsl(' + hue + ', 80%, 45%)';
+            }
+
+            fetch('${basePath}/api/facilities/heatmap')
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to load heatmap API');
+                    return res.json();
+                })
+                .then(data => {
+                    const container = document.getElementById('heatmap');
+                    container.classList.remove('loading');
+                    container.innerHTML = '';
+
+                    data.forEach((item) => {
+                        const card = document.createElement('div');
+                        card.className = 'province-card';
+                        card.style.background = poorToColor(item.poor_percent);
+                        card.innerHTML =
+                            '<div class="province-name">' + item.province + '</div>' +
+                            '<div class="province-stats">Excellent: ' + item.excellent_percent.toFixed(1) + '%<br>Poor: ' + item.poor_percent.toFixed(1) + '%<br>Total: ' + item.total_facilities + '</div>';
+                        container.appendChild(card);
+                    });
+
+                    const legend = document.getElementById('heatmapLegend');
+                    legend.innerHTML =
+                        '<div class="legend-item"><span class="legend-color" style="background:' + poorToColor(0) + '"></span>Low Poor (Strong Excellent)</div>' +
+                        '<div class="legend-item"><span class="legend-color" style="background:' + poorToColor(50) + '"></span>Medium Poor</div>' +
+                        '<div class="legend-item"><span class="legend-color" style="background:' + poorToColor(100) + '"></span>High Poor</div>';
+                })
+                .catch(err => {
+                    document.getElementById('heatmap').innerHTML = '<div class="error">Error loading data: ' + err.message + '</div>';
+                });
+        </script>
+    </body>
+    </html>
+    `;
+
+    res.send(heatmapHtml);
 });
 
 // Route for facility condition statistics

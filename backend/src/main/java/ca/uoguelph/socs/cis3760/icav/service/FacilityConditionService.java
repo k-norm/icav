@@ -2,6 +2,7 @@ package ca.uoguelph.socs.cis3760.icav.service;
 
 import ca.uoguelph.socs.cis3760.icav.model.FacilityConditionData;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityConditionStats;
+import ca.uoguelph.socs.cis3760.icav.dto.FacilityHeatmapData;
 import ca.uoguelph.socs.cis3760.icav.dto.FacilityScatterData;
 import ca.uoguelph.socs.cis3760.icav.repository.FacilityConditionRepository;
 import ca.uoguelph.socs.cis3760.icav.repository.FacilityAccessibilityRepository;
@@ -99,6 +100,29 @@ public class FacilityConditionService {
                     Math.round(accessiblePercent * 100.0) / 100.0,
                     Math.round(poorPercent * 100.0) / 100.0,
                     totalCondition  // Using condition total as total facilities
+                );
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves heatmap data for facility conditions by province.
+     * Contains excellent and poor percentages to drive color intensity.
+     *
+     * @return List of FacilityHeatmapData for provinces
+     */
+    public List<FacilityHeatmapData> getFacilityHeatmapData() {
+        return facilityConditionRepository.findAllByOrderByProvinceAsc().stream()
+            .map(data -> {
+                final int total = data.getExcellent() + data.getGood() + data.getFair() + data.getPoor();
+                final double excellentPercent = total > 0 ? (double) data.getExcellent() / total * 100 : 0.0;
+                final double poorPercent = total > 0 ? (double) data.getPoor() / total * 100 : 0.0;
+
+                return new FacilityHeatmapData(
+                    data.getProvince(),
+                    Math.round(excellentPercent * 100.0) / 100.0,
+                    Math.round(poorPercent * 100.0) / 100.0,
+                    total
                 );
             })
             .collect(Collectors.toList());
