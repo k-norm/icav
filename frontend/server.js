@@ -1141,24 +1141,32 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                 flex-direction: column;
                 align-items: center;
                 margin: 30px 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-radius: 12px;
+                box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
             }
             svg {
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                background: #e8f4f8;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
                 width: 100%;
-                max-width: 1200px;
+                max-width: 1000px;
                 height: auto;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             }
             path[data-province] {
-                stroke: #333;
+                stroke: #fff;
                 stroke-width: 1.5;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all 0.3s ease;
+                filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
             }
             path[data-province]:hover {
                 stroke-width: 2.5;
-                filter: brightness(0.9);
+                stroke: #333;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)) brightness(1.1);
+                transform: scale(1.02);
             }
             path[data-province].hidden {
                 fill: #e0e0e0 !important;
@@ -1167,16 +1175,20 @@ mainRouter.get('/chart/heatmap', (req, res) => {
             }
             .tooltip {
                 position: absolute;
-                background: rgba(0,0,0,0.9);
+                background: rgba(33, 33, 33, 0.95);
                 color: white;
-                padding: 12px 14px;
-                border-radius: 6px;
-                font-size: 13px;
+                padding: 15px 18px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
                 pointer-events: none;
                 z-index: 1000;
                 display: none;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                max-width: 220px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.1);
+                max-width: 250px;
+                line-height: 1.4;
             }
             .legend {
                 margin-top: 30px;
@@ -1201,9 +1213,26 @@ mainRouter.get('/chart/heatmap', (req, res) => {
             }
             .loading {
                 text-align: center;
-                padding: 60px;
-                font-size: 1.2em;
+                padding: 80px;
+                font-size: 1.3em;
                 color: #666;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
+            .loading::after {
+                content: '';
+                width: 40px;
+                height: 40px;
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #667eea;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
             }
             .error {
                 color: #d32f2f;
@@ -1226,9 +1255,11 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                     <label for="filterSelect">Filter by Condition:</label>
                     <select id="filterSelect">
                         <option value="all">All Conditions</option>
-                        <option value="low">Low Poor (≤33%) - Excellent</option>
-                        <option value="medium">Medium Poor (34-66%) - Mixed</option>
-                        <option value="high">High Poor (≥67%) - Poor</option>
+                        <option value="excellent">Excellent (≥42%)</option>
+                        <option value="very-good">Very Good (40-41.9%)</option>
+                        <option value="good">Good (38-39.9%)</option>
+                        <option value="fair">Fair (36-37.9%)</option>
+                        <option value="poor">Poor (<36%)</option>
                     </select>
                 </div>
                 <div class="nav-buttons">
@@ -1249,19 +1280,25 @@ mainRouter.get('/chart/heatmap', (req, res) => {
         <script>
             let provincesData = {};
             
-            function getConditionCategory(poorPercent) {
-                if (poorPercent <= 33) return 'low';
-                else if (poorPercent <= 66) return 'medium';
-                else return 'high';
+            function getConditionCategory(excellentPercent) {
+                if (excellentPercent >= 42) return 'excellent';
+                else if (excellentPercent >= 40) return 'very-good';
+                else if (excellentPercent >= 38) return 'good';
+                else if (excellentPercent >= 36) return 'fair';
+                else return 'poor';
             }
 
-            function poorToColor(poorPercent) {
-                if (poorPercent <= 33) {
-                    return '#2d5016'; // Green - low poor (excellent)
-                } else if (poorPercent <= 66) {
-                    return '#f9d71c'; // Yellow - medium poor
+            function excellentToColor(excellentPercent) {
+                if (excellentPercent >= 42) {
+                    return '#2e7d32'; // Dark green - excellent
+                } else if (excellentPercent >= 40) {
+                    return '#4caf50'; // Green - very good
+                } else if (excellentPercent >= 38) {
+                    return '#8bc34a'; // Light green - good
+                } else if (excellentPercent >= 36) {
+                    return '#ffc107'; // Yellow - fair
                 } else {
-                    return '#d32f2f'; // Red - high poor
+                    return '#ff9800'; // Orange - poor
                 }
             }
 
@@ -1276,7 +1313,10 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                 'NB': 'New Brunswick',
                 'PE': 'Prince Edward Island',
                 'NS': 'Nova Scotia',
-                'NL': 'Newfoundland and Labrador'
+                'NL': 'Newfoundland and Labrador',
+                'YT': 'Yukon',
+                'NT': 'Northwest Territories',
+                'NU': 'Nunavut'
             };
 
             function applyFilter(filterValue) {
@@ -1291,7 +1331,7 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                             element.style.opacity = '1';
                         }
                     } else {
-                        const category = getConditionCategory(data.poor_percent);
+                        const category = getConditionCategory(data.excellent_percent);
                         if (category === filterValue) {
                             if (element.tagName === 'path') {
                                 element.classList.remove('hidden');
@@ -1333,53 +1373,53 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                         .then(svgText => {
                             container.innerHTML = svgText;
 
-                            // Add data-province attributes to paths based on text label positions
-                            const provincePositions = {
-                                'BC': { x: 216.8, y: 1024 },
-                                'AB': { x: 424.8, y: 1103 },
-                                'SK': { x: 622.1, y: 1158 },
-                                'MB': { x: 808.9, y: 1188 },
-                                'ON': { x: 1080, y: 1282 },
-                                'QC': { x: 1425, y: 1171 },
-                                'NB': { x: 1638, y: 1321 },
-                                'PE': { x: 1704, y: 1222 },
-                                'NS': { x: 1803, y: 1365 },
-                                'NL': { x: 1622, y: 1013 }
-                            };
-
-                            // Create clickable overlay circles for each province
-                            Object.entries(provincePositions).forEach(([code, pos]) => {
-                                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                                circle.setAttribute('cx', pos.x);
-                                circle.setAttribute('cy', pos.y);
-                                circle.setAttribute('r', '50'); // Radius for click area
-                                circle.setAttribute('fill', 'transparent');
-                                circle.setAttribute('stroke', 'none');
-                                circle.setAttribute('data-province', code);
-                                circle.style.cursor = 'pointer';
-                                container.querySelector('svg').appendChild(circle);
+                            // The SVG now has proper province groups with IDs
+                            // Add data-province attributes to province groups
+                            document.querySelectorAll('g[id]').forEach(group => {
+                                const provinceCode = group.id;
+                                if (['BC', 'AB', 'SK', 'MB', 'ON', 'QC', 'NB', 'NS', 'PE', 'NL', 'YT', 'NT', 'NU'].includes(provinceCode)) {
+                                    group.setAttribute('data-province', provinceCode);
+                                    // Add data-province to all paths within the group
+                                    group.querySelectorAll('path').forEach(path => {
+                                        path.setAttribute('data-province', provinceCode);
+                                    });
+                                }
                             });
 
-                            // Also try to find and assign data-province to actual paths
-                            Object.entries(provincePositions).forEach(([code, pos]) => {
-                                const paths = Array.from(container.querySelectorAll('path'));
-                                let closestPath = null;
-                                let minDistance = Infinity;
-                                
-                                paths.forEach(path => {
-                                    const bbox = path.getBBox();
-                                    const centerX = bbox.x + bbox.width / 2;
-                                    const centerY = bbox.y + bbox.height / 2;
-                                    const distance = Math.sqrt(Math.pow(pos.x - centerX, 2) + Math.pow(pos.y - centerY, 2));
-                                    
-                                    if (distance < minDistance && distance < 300) {
-                                        minDistance = distance;
-                                        closestPath = path;
-                                    }
-                                });
-                                
-                                if (closestPath && !closestPath.hasAttribute('data-province')) {
-                                    closestPath.setAttribute('data-province', code);
+                            // Add province name labels
+                            const provinceCenters = {
+                                'AB': [-12000, -8000],
+                                'BC': [-18000, -6000], 
+                                'MB': [-6000, -4000],
+                                'NB': [8000, -2000],
+                                'NL': [12000, 2000],
+                                'NS': [9000, -4000],
+                                'NT': [-8000, 8000],
+                                'NU': [2000, 12000],
+                                'ON': [1000, -2000],
+                                'PE': [9500, -3000],
+                                'QC': [4000, 1000],
+                                'SK': [-9000, -6000],
+                                'YT': [-20000, 6000]
+                            };
+
+                            document.querySelectorAll('g[data-province]').forEach(group => {
+                                const code = group.getAttribute('data-province');
+                                const center = provinceCenters[code];
+                                if (center) {
+                                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    text.setAttribute('x', center[0]);
+                                    text.setAttribute('y', center[1]);
+                                    text.setAttribute('text-anchor', 'middle');
+                                    text.setAttribute('dominant-baseline', 'middle');
+                                    text.setAttribute('font-size', '16px');
+                                    text.setAttribute('fill', 'white');
+                                    text.setAttribute('stroke', 'black');
+                                    text.setAttribute('stroke-width', '1px');
+                                    text.setAttribute('font-weight', 'bold');
+                                    text.setAttribute('data-province', code);
+                                    text.textContent = code;
+                                    group.appendChild(text);
                                 }
                             });
 
@@ -1398,7 +1438,7 @@ mainRouter.get('/chart/heatmap', (req, res) => {
 
                                 // Update color based on data - for paths
                                 if (element.tagName === 'path') {
-                                    const color = poorToColor(item.poor_percent);
+                                    const color = excellentToColor(item.excellent_percent);
                                     element.style.fill = color;
                                     element.classList.add('province');
                                 } else if (element.tagName === 'text') {
@@ -1409,11 +1449,14 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                                 // Add hover events
                                 element.addEventListener('mouseover', function(e) {
                                     const tooltip = document.getElementById('tooltip');
+                                    const condition = getConditionCategory(item.excellent_percent);
+                                    const conditionText = condition.charAt(0).toUpperCase() + condition.slice(1).replace('-', ' ');
                                     tooltip.style.display = 'block';
                                     tooltip.innerHTML = '<strong>' + (item.province || code) + '</strong><br>' +
+                                        'Condition: ' + conditionText + '<br>' +
                                         'Excellent: ' + item.excellent_percent.toFixed(1) + '%<br>' +
                                         'Poor: ' + item.poor_percent.toFixed(1) + '%<br>' +
-                                        'Total Facilities: ' + item.total_facilities;
+                                        'Total Facilities: ' + item.total_facilities.toLocaleString();
                                 });
 
                                 element.addEventListener('mousemove', function(e) {
@@ -1430,9 +1473,11 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                             // Create legend
                             const legend = document.getElementById('heatmapLegend');
                             legend.innerHTML =
-                                '<div class="legend-item"><span class="legend-color" style="background:#2d5016"></span>Low Poor (≤33%) - Excellent Condition</div>' +
-                                '<div class="legend-item"><span class="legend-color" style="background:#f9d71c"></span>Medium Poor (34-66%) - Mixed Condition</div>' +
-                                '<div class="legend-item"><span class="legend-color" style="background:#d32f2f"></span>High Poor (≥67%) - Poor Condition</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#2e7d32"></span>Excellent (≥42%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#4caf50"></span>Very Good (40-41.9%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#8bc34a"></span>Good (38-39.9%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#ffc107"></span>Fair (36-37.9%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#ff9800"></span>Poor (<36%)</div>' +
                                 '<div class="legend-item"><span class="legend-color" style="background:#e0e0e0"></span>Filtered Out</div>';
 
                             // Setup filter listener
