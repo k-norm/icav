@@ -1155,20 +1155,20 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                 height: auto;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             }
-            path[data-province] {
+            path[data-province], use[data-province] {
                 stroke: #fff;
                 stroke-width: 1.5;
                 cursor: pointer;
                 transition: all 0.3s ease;
                 filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
             }
-            path[data-province]:hover {
+            path[data-province]:hover, use[data-province]:hover {
                 stroke-width: 2.5;
                 stroke: #333;
                 filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)) brightness(1.1);
                 transform: scale(1.02);
             }
-            path[data-province].hidden {
+            path[data-province].hidden, use[data-province].hidden {
                 fill: #e0e0e0 !important;
                 opacity: 0.3;
                 cursor: not-allowed;
@@ -1320,33 +1320,53 @@ mainRouter.get('/chart/heatmap', (req, res) => {
             };
 
             function applyFilter(filterValue) {
-                document.querySelectorAll('path[data-province], text[data-province]').forEach(element => {
+                document.querySelectorAll('path[data-province], use[data-province], text[data-province]').forEach(element => {
                     const code = element.getAttribute('data-province');
                     const data = provincesData[code];
                     
                     if (!data || filterValue === 'all') {
-                        if (element.tagName === 'path') {
+                        if (element.tagName === 'path' || element.tagName === 'use') {
                             element.classList.remove('hidden');
+                            element.style.display = '';
                         } else if (element.tagName === 'text') {
                             element.style.opacity = '1';
                         }
                     } else {
                         const category = getConditionCategory(data.excellent_percent);
                         if (category === filterValue) {
-                            if (element.tagName === 'path') {
+                            if (element.tagName === 'path' || element.tagName === 'use') {
                                 element.classList.remove('hidden');
+                                element.style.display = '';
                             } else if (element.tagName === 'text') {
                                 element.style.opacity = '1';
                             }
                         } else {
-                            if (element.tagName === 'path') {
+                            if (element.tagName === 'path' || element.tagName === 'use') {
                                 element.classList.add('hidden');
+                                element.style.display = 'none';
                             } else if (element.tagName === 'text') {
                                 element.style.opacity = '0.3';
                             }
                         }
                     }
                 });
+
+                // For PEI <use> shape, mirror the same hide/show from path logic
+                const peiData = provincesData['PE'];
+                if (peiData && filterValue !== 'all') {
+                    const peiCategory = getConditionCategory(peiData.excellent_percent);
+                    document.querySelectorAll('use[data-province="PE"]').forEach(element => {
+                        if (peiCategory === filterValue) {
+                            element.style.display = '';
+                        } else {
+                            element.style.display = 'none';
+                        }
+                    });
+                } else {
+                    document.querySelectorAll('use[data-province="PE"]').forEach(element => {
+                        element.style.display = '';
+                    });
+                }
             }
 
             fetch('${basePath}/api/facilities/heatmap')
@@ -1379,10 +1399,16 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                                 const provinceCode = group.id;
                                 if (['BC', 'AB', 'SK', 'MB', 'ON', 'QC', 'NB', 'NS', 'PE', 'NL', 'YT', 'NT', 'NU'].includes(provinceCode)) {
                                     group.setAttribute('data-province', provinceCode);
-                                    // Add data-province to all paths within the group
+                                    // Add data-province to all paths in group (default behavior)
                                     group.querySelectorAll('path').forEach(path => {
                                         path.setAttribute('data-province', provinceCode);
                                     });
+                                    // For PEI, also add to the <use> element so it can color and hover too.
+                                    if (provinceCode === 'PE') {
+                                        group.querySelectorAll('use').forEach(use => {
+                                            use.setAttribute('data-province', provinceCode);
+                                        });
+                                    }
                                 }
                             });
 
@@ -1423,8 +1449,8 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                                 }
                             });
 
-                            // Add event handlers to province paths and text elements
-                            document.querySelectorAll('path[data-province], text[data-province]').forEach(element => {
+                            // Add event handlers to province paths, uses, and text elements
+                            document.querySelectorAll('path[data-province], use[data-province], text[data-province]').forEach(element => {
                                 const code = element.getAttribute('data-province');
                                 const provinceName = codeToName[code];
                                 const item = dataMap[provinceName] || { 
@@ -1436,8 +1462,8 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                                 
                                 provincesData[code] = item;
 
-                                // Update color based on data - for paths
-                                if (element.tagName === 'path') {
+                                // Update color based on data - for paths and uses
+                                if (element.tagName === 'path' || element.tagName === 'use') {
                                     const color = excellentToColor(item.excellent_percent);
                                     element.style.fill = color;
                                     element.classList.add('province');
@@ -1447,6 +1473,44 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                                 }
 
                                 // Add hover events
+                                element.addEventListener('mouseover', function(e) {
+                                    const tooltip = document.getElementById('tooltip');
+                                    const condition = getConditionCategory(item.excellent_percent);
+                                    const conditionText = condition.charAt(0).toUpperCase() + condition.slice(1).replace('-', ' ');
+                                    tooltip.style.display = 'block';
+                                    tooltip.innerHTML = '<strong>' + (item.province || code) + '</strong><br>' +
+                                        'Condition: ' + conditionText + '<br>' +
+                                        'Excellent: ' + item.excellent_percent.toFixed(1) + '%<br>' +
+                                        'Poor: ' + item.poor_percent.toFixed(1) + '%<br>' +
+                                        'Total Facilities: ' + item.total_facilities.toLocaleString();
+                                });
+
+                                element.addEventListener('mousemove', function(e) {
+                                    const tooltip = document.getElementById('tooltip');
+                                    tooltip.style.left = (e.pageX + 10) + 'px';
+                                    tooltip.style.top = (e.pageY + 10) + 'px';
+                                });
+
+                                element.addEventListener('mouseout', function() {
+                                    document.getElementById('tooltip').style.display = 'none';
+                                });
+                            });
+
+                            // PEI <use> is implemented as a symbol reference; apply the same style/tooltip behavior as the other provinces
+                            document.querySelectorAll('use[data-province="PE"]').forEach(element => {
+                                const code = element.getAttribute('data-province');
+                                const provinceName = codeToName[code];
+                                const item = dataMap[provinceName] || {
+                                    excellent_percent: 0,
+                                    poor_percent: 0,
+                                    total_facilities: 0,
+                                    province: provinceName || code
+                                };
+
+                                provincesData[code] = item;
+                                const color = excellentToColor(item.excellent_percent);
+                                element.style.fill = color;
+
                                 element.addEventListener('mouseover', function(e) {
                                     const tooltip = document.getElementById('tooltip');
                                     const condition = getConditionCategory(item.excellent_percent);
