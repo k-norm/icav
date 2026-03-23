@@ -6,6 +6,9 @@ const basePath = (process.env.BASE_PATH || '') .replace(/\/$/, '');
 const backendApi = process.env.BACKEND_PROXY || 'http://backend:8080';
 const apiPrefix = basePath ? `${basePath}/api` : '/api';
 
+// Serve static files from the frontend directory
+app.use(express.static(__dirname));
+
 // Proxy API requests to backend through this express instance.
 app.use(apiPrefix, async (req, res) => {
     const targetPath = `${req.originalUrl.replace(basePath, '')}`;
@@ -113,6 +116,7 @@ mainRouter.get('/', (req, res) => {
         <div class="buttons">
             <a href="${basePath}/chart/scatter" class="btn">Scatter Plot</a>
             <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
+            <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
             <a href="${basePath}/table/condition" class="btn btn-tertiary">View Table</a>
             <a href="${basePath}/stats/condition" class="btn btn-quaternary">View Statistics</a>
         </div>
@@ -452,6 +456,7 @@ mainRouter.get('/chart/condition', (req, res) => {
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
                 <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
                 <a href="${basePath}/table/condition" class="btn btn-tertiary">View Table</a>
             </div>
 
@@ -751,6 +756,7 @@ mainRouter.get('/chart/scatter', (req, res) => {
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
                 <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
+                <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
                 <a href="${basePath}/stats/condition" class="btn btn-secondary">Statistics</a>
             </div>
             
@@ -1036,6 +1042,464 @@ mainRouter.get('/chart/scatter', (req, res) => {
     </html>
     `;
     res.send(chartHtml);
+});
+
+// Route for facility heatmap - Facility condition by province
+// Data is represented by poor/excellent color intensity.
+mainRouter.get('/chart/heatmap', (req, res) => {
+    const heatmapHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Canada Facility Condition Heatmap</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background-color: #f5f5f5;
+                padding: 20px;
+            }
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #333;
+                margin-bottom: 10px;
+                font-size: 2.5em;
+                text-align: center;
+            }
+            .subtitle {
+                color: #666;
+                margin-bottom: 20px;
+                font-size: 1.1em;
+                text-align: center;
+            }
+            .controls {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 20px;
+                margin-bottom: 30px;
+                flex-wrap: wrap;
+            }
+            .filter-group {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .filter-group label {
+                font-weight: 600;
+                color: #333;
+            }
+            .filter-group select {
+                padding: 10px 15px;
+                border: 2px solid #667eea;
+                border-radius: 5px;
+                font-size: 1rem;
+                cursor: pointer;
+                background: white;
+                transition: all 0.3s ease;
+            }
+            .filter-group select:hover {
+                border-color: #5a67d8;
+                box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            }
+            .filter-group select:focus {
+                outline: none;
+                border-color: #5a67d8;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+            .nav-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                background: #667eea;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                border: none;
+                cursor: pointer;
+            }
+            .btn:hover {
+                background: #5a67d8;
+            }
+            #map-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 30px 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-radius: 12px;
+                box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            }
+            svg {
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                width: 100%;
+                max-width: 1000px;
+                height: auto;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+            path[data-province] {
+                stroke: #fff;
+                stroke-width: 1.5;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+            }
+            path[data-province]:hover {
+                stroke-width: 2.5;
+                stroke: #333;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)) brightness(1.1);
+                transform: scale(1.02);
+            }
+            path[data-province].hidden {
+                fill: #e0e0e0 !important;
+                opacity: 0.3;
+                cursor: not-allowed;
+            }
+            .tooltip {
+                position: absolute;
+                background: rgba(33, 33, 33, 0.95);
+                color: white;
+                padding: 15px 18px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                pointer-events: none;
+                z-index: 1000;
+                display: none;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.1);
+                max-width: 250px;
+                line-height: 1.4;
+            }
+            .legend {
+                margin-top: 30px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 20px;
+                flex-wrap: wrap;
+            }
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 0.95rem;
+                color: #333;
+            }
+            .legend-color {
+                width: 32px;
+                height: 32px;
+                border-radius: 4px;
+                border: 1px solid rgba(0,0,0,0.3);
+            }
+            .loading {
+                text-align: center;
+                padding: 80px;
+                font-size: 1.3em;
+                color: #666;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
+            .loading::after {
+                content: '';
+                width: 40px;
+                height: 40px;
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #667eea;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .error {
+                color: #d32f2f;
+                font-weight: bold;
+                padding: 15px;
+                background-color: #ffebee;
+                border-radius: 4px;
+                margin: 20px 0;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Canada Facility Condition Heatmap</h1>
+            <p class="subtitle">Geographic distribution of facility conditions by province</p>
+            
+            <div class="controls">
+                <div class="filter-group">
+                    <label for="filterSelect">Filter by Condition:</label>
+                    <select id="filterSelect">
+                        <option value="all">All Conditions</option>
+                        <option value="excellent">Excellent (≥42%)</option>
+                        <option value="very-good">Very Good (40-41.9%)</option>
+                        <option value="good">Good (38-39.9%)</option>
+                        <option value="fair">Fair (36-37.9%)</option>
+                        <option value="poor">Poor (<36%)</option>
+                    </select>
+                </div>
+                <div class="nav-buttons">
+                    <a href="${basePath}/" class="btn">Home</a>
+                    <a href="${basePath}/chart/condition" class="btn">Condition Chart</a>
+                    <a href="${basePath}/chart/scatter" class="btn">Scatter Plot</a>
+                    <a href="${basePath}/stats/condition" class="btn">Statistics</a>
+                </div>
+            </div>
+
+            <div id="map-container">
+                <div id="heatmap" class="loading">Loading Canada map...</div>
+            </div>
+            <div class="legend" id="heatmapLegend"></div>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <script>
+            let provincesData = {};
+            
+            function getConditionCategory(excellentPercent) {
+                if (excellentPercent >= 42) return 'excellent';
+                else if (excellentPercent >= 40) return 'very-good';
+                else if (excellentPercent >= 38) return 'good';
+                else if (excellentPercent >= 36) return 'fair';
+                else return 'poor';
+            }
+
+            function excellentToColor(excellentPercent) {
+                if (excellentPercent >= 42) {
+                    return '#2e7d32'; // Dark green - excellent
+                } else if (excellentPercent >= 40) {
+                    return '#4caf50'; // Green - very good
+                } else if (excellentPercent >= 38) {
+                    return '#8bc34a'; // Light green - good
+                } else if (excellentPercent >= 36) {
+                    return '#ffc107'; // Yellow - fair
+                } else {
+                    return '#ff9800'; // Orange - poor
+                }
+            }
+
+            // Map province names to abbreviations
+            const codeToName = {
+                'BC': 'British Columbia',
+                'AB': 'Alberta',
+                'SK': 'Saskatchewan',
+                'MB': 'Manitoba',
+                'ON': 'Ontario',
+                'QC': 'Quebec',
+                'NB': 'New Brunswick',
+                'PE': 'Prince Edward Island',
+                'NS': 'Nova Scotia',
+                'NL': 'Newfoundland and Labrador',
+                'YT': 'Yukon',
+                'NT': 'Northwest Territories',
+                'NU': 'Nunavut'
+            };
+
+            function applyFilter(filterValue) {
+                document.querySelectorAll('path[data-province], text[data-province]').forEach(element => {
+                    const code = element.getAttribute('data-province');
+                    const data = provincesData[code];
+                    
+                    if (!data || filterValue === 'all') {
+                        if (element.tagName === 'path') {
+                            element.classList.remove('hidden');
+                        } else if (element.tagName === 'text') {
+                            element.style.opacity = '1';
+                        }
+                    } else {
+                        const category = getConditionCategory(data.excellent_percent);
+                        if (category === filterValue) {
+                            if (element.tagName === 'path') {
+                                element.classList.remove('hidden');
+                            } else if (element.tagName === 'text') {
+                                element.style.opacity = '1';
+                            }
+                        } else {
+                            if (element.tagName === 'path') {
+                                element.classList.add('hidden');
+                            } else if (element.tagName === 'text') {
+                                element.style.opacity = '0.3';
+                            }
+                        }
+                    }
+                });
+            }
+
+            fetch('${basePath}/api/facilities/heatmap')
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to load heatmap API');
+                    return res.json();
+                })
+                .then(apiData => {
+                    const data = Array.isArray(apiData) ? apiData : apiData.value || [];
+                    
+                    // Create data map for quick lookup by province name
+                    const dataMap = {};
+                    data.forEach(item => {
+                        dataMap[item.province] = item;
+                    });
+
+                    const container = document.getElementById('heatmap');
+                    container.classList.remove('loading');
+                    container.innerHTML = '';
+
+                    // Fetch and insert the external SVG
+                    fetch('${basePath}/CanadaMap.svg')
+                        .then(svgRes => svgRes.text())
+                        .then(svgText => {
+                            container.innerHTML = svgText;
+
+                            // The SVG now has proper province groups with IDs
+                            // Add data-province attributes to province groups
+                            document.querySelectorAll('g[id]').forEach(group => {
+                                const provinceCode = group.id;
+                                if (['BC', 'AB', 'SK', 'MB', 'ON', 'QC', 'NB', 'NS', 'PE', 'NL', 'YT', 'NT', 'NU'].includes(provinceCode)) {
+                                    group.setAttribute('data-province', provinceCode);
+                                    // Add data-province to all paths within the group
+                                    group.querySelectorAll('path').forEach(path => {
+                                        path.setAttribute('data-province', provinceCode);
+                                    });
+                                }
+                            });
+
+                            // Add province name labels
+                            const provinceCenters = {
+                                'AB': [-12000, -8000],
+                                'BC': [-18000, -6000], 
+                                'MB': [-6000, -4000],
+                                'NB': [8000, -2000],
+                                'NL': [12000, 2000],
+                                'NS': [9000, -4000],
+                                'NT': [-8000, 8000],
+                                'NU': [2000, 12000],
+                                'ON': [1000, -2000],
+                                'PE': [9500, -3000],
+                                'QC': [4000, 1000],
+                                'SK': [-9000, -6000],
+                                'YT': [-20000, 6000]
+                            };
+
+                            document.querySelectorAll('g[data-province]').forEach(group => {
+                                const code = group.getAttribute('data-province');
+                                const center = provinceCenters[code];
+                                if (center) {
+                                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    text.setAttribute('x', center[0]);
+                                    text.setAttribute('y', center[1]);
+                                    text.setAttribute('text-anchor', 'middle');
+                                    text.setAttribute('dominant-baseline', 'middle');
+                                    text.setAttribute('font-size', '16px');
+                                    text.setAttribute('fill', 'white');
+                                    text.setAttribute('stroke', 'black');
+                                    text.setAttribute('stroke-width', '1px');
+                                    text.setAttribute('font-weight', 'bold');
+                                    text.setAttribute('data-province', code);
+                                    text.textContent = code;
+                                    group.appendChild(text);
+                                }
+                            });
+
+                            // Add event handlers to province paths and text elements
+                            document.querySelectorAll('path[data-province], text[data-province]').forEach(element => {
+                                const code = element.getAttribute('data-province');
+                                const provinceName = codeToName[code];
+                                const item = dataMap[provinceName] || { 
+                                    excellent_percent: 0,
+                                    poor_percent: 0,
+                                    total_facilities: 0,
+                                    province: provinceName || code
+                                };
+                                
+                                provincesData[code] = item;
+
+                                // Update color based on data - for paths
+                                if (element.tagName === 'path') {
+                                    const color = excellentToColor(item.excellent_percent);
+                                    element.style.fill = color;
+                                    element.classList.add('province');
+                                } else if (element.tagName === 'text') {
+                                    // For text elements, we can add a background or border to indicate interactivity
+                                    element.style.cursor = 'pointer';
+                                }
+
+                                // Add hover events
+                                element.addEventListener('mouseover', function(e) {
+                                    const tooltip = document.getElementById('tooltip');
+                                    const condition = getConditionCategory(item.excellent_percent);
+                                    const conditionText = condition.charAt(0).toUpperCase() + condition.slice(1).replace('-', ' ');
+                                    tooltip.style.display = 'block';
+                                    tooltip.innerHTML = '<strong>' + (item.province || code) + '</strong><br>' +
+                                        'Condition: ' + conditionText + '<br>' +
+                                        'Excellent: ' + item.excellent_percent.toFixed(1) + '%<br>' +
+                                        'Poor: ' + item.poor_percent.toFixed(1) + '%<br>' +
+                                        'Total Facilities: ' + item.total_facilities.toLocaleString();
+                                });
+
+                                element.addEventListener('mousemove', function(e) {
+                                    const tooltip = document.getElementById('tooltip');
+                                    tooltip.style.left = (e.pageX + 10) + 'px';
+                                    tooltip.style.top = (e.pageY + 10) + 'px';
+                                });
+
+                                element.addEventListener('mouseout', function() {
+                                    document.getElementById('tooltip').style.display = 'none';
+                                });
+                            });
+
+                            // Create legend
+                            const legend = document.getElementById('heatmapLegend');
+                            legend.innerHTML =
+                                '<div class="legend-item"><span class="legend-color" style="background:#2e7d32"></span>Excellent (≥42%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#4caf50"></span>Very Good (40-41.9%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#8bc34a"></span>Good (38-39.9%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#ffc107"></span>Fair (36-37.9%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#ff9800"></span>Poor (<36%)</div>' +
+                                '<div class="legend-item"><span class="legend-color" style="background:#e0e0e0"></span>Filtered Out</div>';
+
+                            // Setup filter listener
+                            document.getElementById('filterSelect').addEventListener('change', function(e) {
+                                applyFilter(e.target.value);
+                            });
+                        })
+                        .catch(err => {
+                            console.error('Error loading SVG:', err);
+                            container.innerHTML = '<div class="error">Error loading map SVG: ' + err.message + '</div>';
+                        });
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    document.getElementById('heatmap').innerHTML = '<div class="error">Error loading data: ' + err.message + '</div>';
+                });
+        </script>
+    </body>
+    </html>
+    `;
+
+    res.send(heatmapHtml);
 });
 
 // Route for facility condition statistics
