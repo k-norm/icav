@@ -1162,11 +1162,14 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                 transition: all 0.3s ease;
                 filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
             }
-            path[data-province]:hover, use[data-province]:hover {
-                stroke-width: 2.5;
-                stroke: #333;
-                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)) brightness(1.1);
+            g[data-province] {
+                cursor: pointer;
+                transition: all 0.3s ease;
+                transform-origin: center center; /* scale from province center */
+            }
+            g[data-province]:hover {
                 transform: scale(1.02);
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)) brightness(1.1);
             }
             path[data-province].hidden, use[data-province].hidden {
                 fill: #e0e0e0 !important;
@@ -1393,22 +1396,24 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                         .then(svgText => {
                             container.innerHTML = svgText;
 
-                            // The SVG now has proper province groups with IDs
                             // Add data-province attributes to province groups
                             document.querySelectorAll('g[id]').forEach(group => {
                                 const provinceCode = group.id;
-                                if (['BC', 'AB', 'SK', 'MB', 'ON', 'QC', 'NB', 'NS', 'PE', 'NL', 'YT', 'NT', 'NU'].includes(provinceCode)) {
+                                const provinces = ['BC', 'AB', 'SK', 'MB', 'ON', 'QC', 'NB', 'NS', 'PE', 'NL', 'YT', 'NT', 'NU'];
+                                
+                                if (provinces.includes(provinceCode)) {
+                                    // Add data-province to the <g> itself
                                     group.setAttribute('data-province', provinceCode);
-                                    // Add data-province to all paths in group (default behavior)
+
+                                    // Add data-province to all paths in the group
                                     group.querySelectorAll('path').forEach(path => {
                                         path.setAttribute('data-province', provinceCode);
                                     });
-                                    // For PEI, also add to the <use> element so it can color and hover too.
-                                    if (provinceCode === 'PE') {
-                                        group.querySelectorAll('use').forEach(use => {
-                                            use.setAttribute('data-province', provinceCode);
-                                        });
-                                    }
+
+                                    // Add data-province to all <use> elements in the group
+                                    group.querySelectorAll('use').forEach(use => {
+                                        use.setAttribute('data-province', provinceCode);
+                                    });
                                 }
                             });
 
