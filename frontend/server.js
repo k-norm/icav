@@ -1,4 +1,9 @@
 const express = require('express');
+const {
+    buildComparisonData,
+    calculateMetrics,
+    describeCorrelation
+} = require('./components/comparisonChartUtils');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -115,6 +120,7 @@ mainRouter.get('/', (req, res) => {
 
         <div class="buttons">
             <a href="${basePath}/chart/scatter" class="btn">Scatter Plot</a>
+            <a href="${basePath}/chart/comparison" class="btn">Comparison Graph</a>
             <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
             <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
             <a href="${basePath}/table/condition" class="btn btn-tertiary">View Table</a>
@@ -254,6 +260,7 @@ mainRouter.get('/table/condition', (req, res) => {
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
                 <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/chart/comparison" class="btn btn-secondary">Comparison Graph</a>
                 <a href="${basePath}/chart/condition" class="btn btn-tertiary">Condition Chart</a>
             </div>
 
@@ -456,6 +463,7 @@ mainRouter.get('/chart/condition', (req, res) => {
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
                 <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/chart/comparison" class="btn btn-secondary">Comparison Graph</a>
                 <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
                 <a href="${basePath}/table/condition" class="btn btn-tertiary">View Table</a>
             </div>
@@ -755,6 +763,7 @@ mainRouter.get('/chart/scatter', (req, res) => {
             
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
+                <a href="${basePath}/chart/comparison" class="btn btn-secondary">Comparison Graph</a>
                 <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
                 <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
                 <a href="${basePath}/stats/condition" class="btn btn-secondary">Statistics</a>
@@ -1044,6 +1053,517 @@ mainRouter.get('/chart/scatter', (req, res) => {
     res.send(chartHtml);
 });
 
+// Route for comparison line graph - Good Condition vs Accessibility
+mainRouter.get('/chart/comparison', (req, res) => {
+    const chartHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Good Condition vs Accessibility Comparison</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(180deg, #eef6f6 0%, #f7f3ea 100%);
+                padding: 20px;
+            }
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 30px;
+                border-radius: 16px;
+                box-shadow: 0 18px 36px rgba(28, 53, 56, 0.12);
+            }
+            h1 {
+                color: #18323a;
+                margin-bottom: 10px;
+                font-size: 2.5em;
+                text-align: center;
+            }
+            .subtitle {
+                color: #52646d;
+                margin: 0 auto 30px;
+                font-size: 1.08em;
+                line-height: 1.6;
+                max-width: 980px;
+                text-align: center;
+            }
+            .nav-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 16px;
+                margin-bottom: 28px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                background: #1f6f78;
+                color: white;
+                text-decoration: none;
+                border-radius: 999px;
+                font-weight: 600;
+                transition: transform 0.2s ease, background-color 0.2s ease;
+            }
+            .btn:hover {
+                background: #185b62;
+                transform: translateY(-1px);
+            }
+            .btn-secondary {
+                background: #d97706;
+            }
+            .btn-secondary:hover {
+                background: #b85f00;
+            }
+            .metrics {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 18px;
+                margin-bottom: 24px;
+            }
+            .metric-card {
+                background: linear-gradient(135deg, #f8fbfb 0%, #eff5f3 100%);
+                border: 1px solid #dbe8e5;
+                border-radius: 14px;
+                padding: 18px;
+            }
+            .metric-label {
+                color: #5d7178;
+                font-size: 0.9rem;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                margin-bottom: 10px;
+            }
+            .metric-value {
+                color: #17323a;
+                font-size: 2rem;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .metric-note {
+                color: #61727a;
+                font-size: 0.95rem;
+                line-height: 1.5;
+            }
+            #chart {
+                min-height: 640px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(180deg, #fbfcfb 0%, #f3f7f6 100%);
+                border: 1px solid #dde9e6;
+                border-radius: 18px;
+                overflow: hidden;
+                padding: 10px;
+            }
+            #chart svg {
+                width: 100%;
+                height: auto;
+            }
+            .loading {
+                font-size: 1.15rem;
+                color: #5d7178;
+            }
+            .error {
+                color: #b42318;
+                font-weight: 600;
+                background: #fef3f2;
+                border: 1px solid #fecdca;
+                border-radius: 12px;
+                padding: 16px;
+            }
+            .chart-notes {
+                display: flex;
+                justify-content: center;
+                gap: 22px;
+                margin-top: 18px;
+                flex-wrap: wrap;
+                color: #41545d;
+                font-size: 0.95rem;
+            }
+            .note-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .swatch {
+                width: 28px;
+                height: 4px;
+                border-radius: 999px;
+            }
+            .swatch-line {
+                background: #1f6f78;
+            }
+            .swatch-trend {
+                background: repeating-linear-gradient(
+                    to right,
+                    #d97706,
+                    #d97706 8px,
+                    transparent 8px,
+                    transparent 14px
+                );
+            }
+            .detail-copy {
+                margin-top: 22px;
+                color: #52646d;
+                font-size: 0.98rem;
+                line-height: 1.7;
+                text-align: center;
+            }
+            @media (max-width: 768px) {
+                body {
+                    padding: 12px;
+                }
+                .container {
+                    padding: 20px;
+                }
+                h1 {
+                    font-size: 2rem;
+                }
+                #chart {
+                    min-height: 520px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Good Condition vs Accessibility Comparison</h1>
+            <p class="subtitle">This connected comparison chart asks a direct question: when a province has a higher share of facilities in good condition, does it also tend to report higher accessibility? The x-axis is good condition percentage, the y-axis is accessibility percentage, and the dashed line summarizes the overall dependence.</p>
+
+            <div class="nav-buttons">
+                <a href="${basePath}/" class="btn">Home</a>
+                <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/chart/condition" class="btn btn-secondary">Condition Chart</a>
+                <a href="${basePath}/chart/heatmap" class="btn btn-secondary">Heatmap</a>
+                <a href="${basePath}/stats/condition" class="btn btn-secondary">Statistics</a>
+            </div>
+
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-label">Correlation</div>
+                    <div class="metric-value" id="correlationValue">--</div>
+                    <div class="metric-note" id="correlationNote">Waiting for joined condition and accessibility data.</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Trend Slope</div>
+                    <div class="metric-value" id="slopeValue">--</div>
+                    <div class="metric-note" id="slopeNote">Higher values indicate accessibility rises as good-condition share rises.</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Closest Match</div>
+                    <div class="metric-value" id="closestValue">--</div>
+                    <div class="metric-note" id="closestNote">Province where accessibility tracks most closely with good condition.</div>
+                </div>
+            </div>
+
+            <div id="chart" class="loading">Loading comparison data...</div>
+
+            <div class="chart-notes">
+                <div class="note-item"><span class="swatch swatch-line"></span>Province comparison line ordered by good condition %</div>
+                <div class="note-item"><span class="swatch swatch-trend"></span>Dependence trend line</div>
+            </div>
+
+            <p class="detail-copy">Points are labeled by province and connected from lower to higher good-condition share. If the line and the trend both rise from left to right, that indicates provinces with better condition ratings also tend to be more accessible.</p>
+        </div>
+
+        <script>
+            ${buildComparisonData.toString()}
+            ${calculateMetrics.toString()}
+            ${describeCorrelation.toString()}
+
+            Promise.all([
+                fetch('${basePath}/api/facilities/stats'),
+                fetch('${basePath}/api/facilities/accessibility/stats')
+            ])
+                .then(responses => Promise.all(responses.map(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })))
+                .then(results => {
+                    const comparisonData = buildComparisonData(results[0], results[1]);
+                    renderComparison(comparisonData);
+                })
+                .catch(err => {
+                    document.getElementById('chart').innerHTML = '<div class="error">Error loading comparison data: ' + err.message + '</div>';
+                });
+
+            function renderComparison(data) {
+                const chartContainer = document.getElementById('chart');
+
+                if (!data.length) {
+                    chartContainer.innerHTML = '<div class="error">No comparison data was available for this chart.</div>';
+                    return;
+                }
+
+                chartContainer.innerHTML = '';
+
+                const metrics = calculateMetrics(data);
+                updateMetrics(metrics, data);
+
+                const margin = { top: 30, right: 50, bottom: 80, left: 80 };
+                const width = 1080;
+                const height = 560;
+                const innerWidth = width - margin.left - margin.right;
+                const innerHeight = height - margin.top - margin.bottom;
+
+                const xValues = data.map(item => item.good_percent);
+                const yValues = data.map(item => item.accessible_percent);
+                const xDomain = getDomain(xValues);
+                const yDomain = getDomain(yValues);
+
+                const xScale = value => margin.left + ((value - xDomain.min) / xDomain.range) * innerWidth;
+                const yScale = value => margin.top + innerHeight - ((value - yDomain.min) / yDomain.range) * innerHeight;
+
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+                svg.setAttribute('role', 'img');
+                svg.setAttribute('aria-label', 'Line chart comparing good condition percentage with accessibility percentage');
+
+                drawGrid(svg, margin, innerWidth, innerHeight, xDomain, yDomain, xScale, yScale);
+                drawAxes(svg, margin, innerWidth, innerHeight, xDomain, yDomain, xScale, yScale);
+                drawTrendLine(svg, data, metrics, xScale, yScale);
+                drawComparisonLine(svg, data, xScale, yScale);
+                drawPoints(svg, data, xScale, yScale);
+                drawAxisLabels(svg, width, height, margin, innerHeight);
+
+                chartContainer.appendChild(svg);
+            }
+
+            function getDomain(values) {
+                const minValue = Math.min.apply(null, values);
+                const maxValue = Math.max.apply(null, values);
+                const spread = maxValue - minValue;
+                const padding = spread === 0 ? 5 : spread * 0.12;
+                const min = Math.max(0, minValue - padding);
+                const max = Math.min(100, maxValue + padding);
+                const range = max - min || 1;
+                return { min: min, max: max, range: range };
+            }
+
+            function drawGrid(svg, margin, innerWidth, innerHeight, xDomain, yDomain, xScale, yScale) {
+                const ticks = 5;
+                for (let index = 0; index <= ticks; index += 1) {
+                    const xValue = xDomain.min + (xDomain.range / ticks) * index;
+                    const x = xScale(xValue);
+                    const vertical = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    vertical.setAttribute('x1', x);
+                    vertical.setAttribute('y1', margin.top);
+                    vertical.setAttribute('x2', x);
+                    vertical.setAttribute('y2', margin.top + innerHeight);
+                    vertical.setAttribute('stroke', '#d9e5e2');
+                    vertical.setAttribute('stroke-dasharray', '4 6');
+                    svg.appendChild(vertical);
+
+                    const yValue = yDomain.min + (yDomain.range / ticks) * index;
+                    const y = yScale(yValue);
+                    const horizontal = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    horizontal.setAttribute('x1', margin.left);
+                    horizontal.setAttribute('y1', y);
+                    horizontal.setAttribute('x2', margin.left + innerWidth);
+                    horizontal.setAttribute('y2', y);
+                    horizontal.setAttribute('stroke', '#d9e5e2');
+                    horizontal.setAttribute('stroke-dasharray', '4 6');
+                    svg.appendChild(horizontal);
+                }
+            }
+
+            function drawAxes(svg, margin, innerWidth, innerHeight, xDomain, yDomain, xScale, yScale) {
+                const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                xAxis.setAttribute('x1', margin.left);
+                xAxis.setAttribute('y1', margin.top + innerHeight);
+                xAxis.setAttribute('x2', margin.left + innerWidth);
+                xAxis.setAttribute('y2', margin.top + innerHeight);
+                xAxis.setAttribute('stroke', '#17323a');
+                xAxis.setAttribute('stroke-width', '2');
+                svg.appendChild(xAxis);
+
+                const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                yAxis.setAttribute('x1', margin.left);
+                yAxis.setAttribute('y1', margin.top);
+                yAxis.setAttribute('x2', margin.left);
+                yAxis.setAttribute('y2', margin.top + innerHeight);
+                yAxis.setAttribute('stroke', '#17323a');
+                yAxis.setAttribute('stroke-width', '2');
+                svg.appendChild(yAxis);
+
+                const ticks = 5;
+                for (let index = 0; index <= ticks; index += 1) {
+                    const xValue = xDomain.min + (xDomain.range / ticks) * index;
+                    const x = xScale(xValue);
+                    const xTick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    xTick.setAttribute('x1', x);
+                    xTick.setAttribute('y1', margin.top + innerHeight);
+                    xTick.setAttribute('x2', x);
+                    xTick.setAttribute('y2', margin.top + innerHeight + 6);
+                    xTick.setAttribute('stroke', '#17323a');
+                    svg.appendChild(xTick);
+
+                    const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    xLabel.setAttribute('x', x);
+                    xLabel.setAttribute('y', margin.top + innerHeight + 24);
+                    xLabel.setAttribute('text-anchor', 'middle');
+                    xLabel.setAttribute('font-size', '12');
+                    xLabel.setAttribute('fill', '#52646d');
+                    xLabel.textContent = xValue.toFixed(1) + '%';
+                    svg.appendChild(xLabel);
+
+                    const yValue = yDomain.min + (yDomain.range / ticks) * index;
+                    const y = yScale(yValue);
+                    const yTick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    yTick.setAttribute('x1', margin.left - 6);
+                    yTick.setAttribute('y1', y);
+                    yTick.setAttribute('x2', margin.left);
+                    yTick.setAttribute('y2', y);
+                    yTick.setAttribute('stroke', '#17323a');
+                    svg.appendChild(yTick);
+
+                    const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    yLabel.setAttribute('x', margin.left - 12);
+                    yLabel.setAttribute('y', y + 4);
+                    yLabel.setAttribute('text-anchor', 'end');
+                    yLabel.setAttribute('font-size', '12');
+                    yLabel.setAttribute('fill', '#52646d');
+                    yLabel.textContent = yValue.toFixed(1) + '%';
+                    svg.appendChild(yLabel);
+                }
+            }
+
+            function drawTrendLine(svg, data, metrics, xScale, yScale) {
+                const startX = data[0].good_percent;
+                const endX = data[data.length - 1].good_percent;
+                const startY = metrics.slope * startX + metrics.intercept;
+                const endY = metrics.slope * endX + metrics.intercept;
+
+                const trend = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                trend.setAttribute('x1', xScale(startX));
+                trend.setAttribute('y1', yScale(startY));
+                trend.setAttribute('x2', xScale(endX));
+                trend.setAttribute('y2', yScale(endY));
+                trend.setAttribute('stroke', '#d97706');
+                trend.setAttribute('stroke-width', '3');
+                trend.setAttribute('stroke-dasharray', '10 8');
+                svg.appendChild(trend);
+            }
+
+            function drawComparisonLine(svg, data, xScale, yScale) {
+                const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+                polyline.setAttribute(
+                    'points',
+                    data.map(item => xScale(item.good_percent) + ',' + yScale(item.accessible_percent)).join(' ')
+                );
+                polyline.setAttribute('fill', 'none');
+                polyline.setAttribute('stroke', '#1f6f78');
+                polyline.setAttribute('stroke-width', '4');
+                polyline.setAttribute('stroke-linecap', 'round');
+                polyline.setAttribute('stroke-linejoin', 'round');
+                svg.appendChild(polyline);
+            }
+
+            function drawPoints(svg, data, xScale, yScale) {
+                data.forEach((item, index) => {
+                    const x = xScale(item.good_percent);
+                    const y = yScale(item.accessible_percent);
+
+                    const point = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    point.setAttribute('cx', x);
+                    point.setAttribute('cy', y);
+                    point.setAttribute('r', '6');
+                    point.setAttribute('fill', '#0f4c5c');
+                    point.setAttribute('stroke', 'white');
+                    point.setAttribute('stroke-width', '3');
+                    point.style.cursor = 'pointer';
+                    point.addEventListener('mousemove', event => showTooltip(event, item));
+                    point.addEventListener('mouseleave', hideTooltip);
+                    svg.appendChild(point);
+
+                    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    label.setAttribute('x', x);
+                    label.setAttribute('y', y + (index % 2 === 0 ? -12 : 20));
+                    label.setAttribute('text-anchor', 'middle');
+                    label.setAttribute('font-size', '12');
+                    label.setAttribute('font-weight', '600');
+                    label.setAttribute('fill', '#17323a');
+                    label.textContent = item.province;
+                    svg.appendChild(label);
+                });
+            }
+
+            function drawAxisLabels(svg, width, height, margin, innerHeight) {
+                const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                xLabel.setAttribute('x', width / 2);
+                xLabel.setAttribute('y', height - 16);
+                xLabel.setAttribute('text-anchor', 'middle');
+                xLabel.setAttribute('font-size', '14');
+                xLabel.setAttribute('font-weight', '600');
+                xLabel.setAttribute('fill', '#17323a');
+                xLabel.textContent = 'Good Condition (%)';
+                svg.appendChild(xLabel);
+
+                const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                yLabel.setAttribute('x', -(margin.top + innerHeight / 2));
+                yLabel.setAttribute('y', 24);
+                yLabel.setAttribute('text-anchor', 'middle');
+                yLabel.setAttribute('font-size', '14');
+                yLabel.setAttribute('font-weight', '600');
+                yLabel.setAttribute('fill', '#17323a');
+                yLabel.setAttribute('transform', 'rotate(-90)');
+                yLabel.textContent = 'Accessibility (%)';
+                svg.appendChild(yLabel);
+            }
+
+            function updateMetrics(metrics, data) {
+                document.getElementById('correlationValue').textContent = metrics.correlation.toFixed(2);
+                document.getElementById('correlationNote').textContent = describeCorrelation(metrics.correlation);
+                document.getElementById('slopeValue').textContent = metrics.slope.toFixed(2);
+                document.getElementById('slopeNote').textContent = 'Each +1% in good-condition share aligns with about ' + metrics.slope.toFixed(2) + '% more accessibility on the trend line.';
+                document.getElementById('closestValue').textContent = metrics.closest.province;
+                document.getElementById('closestNote').textContent = 'Gap of ' + metrics.closest.gap.toFixed(2) + ' points between good condition and accessibility across ' + metrics.closest.total_facilities.toLocaleString() + ' facilities.';
+            }
+
+            function showTooltip(event, item) {
+                let tooltip = document.getElementById('comparison-tooltip');
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.id = 'comparison-tooltip';
+                    tooltip.style.position = 'absolute';
+                    tooltip.style.background = 'rgba(23, 50, 58, 0.92)';
+                    tooltip.style.color = 'white';
+                    tooltip.style.padding = '10px 12px';
+                    tooltip.style.borderRadius = '10px';
+                    tooltip.style.fontSize = '12px';
+                    tooltip.style.lineHeight = '1.5';
+                    tooltip.style.pointerEvents = 'none';
+                    tooltip.style.zIndex = '1000';
+                    document.body.appendChild(tooltip);
+                }
+
+                tooltip.innerHTML = '<strong>' + item.province + '</strong><br>' +
+                    'Good Condition: ' + item.good_percent.toFixed(2) + '%<br>' +
+                    'Accessibility: ' + item.accessible_percent.toFixed(2) + '%<br>' +
+                    'Gap: ' + item.gap.toFixed(2) + ' points';
+                tooltip.style.left = (event.pageX + 12) + 'px';
+                tooltip.style.top = (event.pageY - 16) + 'px';
+                tooltip.style.display = 'block';
+            }
+
+            function hideTooltip() {
+                const tooltip = document.getElementById('comparison-tooltip');
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                }
+            }
+        </script>
+    </body>
+    </html>
+    `;
+
+    res.send(chartHtml);
+});
+
 // Route for facility heatmap - Facility condition by province
 // Data is represented by poor/excellent color intensity.
 mainRouter.get('/chart/heatmap', (req, res) => {
@@ -1268,6 +1788,7 @@ mainRouter.get('/chart/heatmap', (req, res) => {
                 <div class="nav-buttons">
                     <a href="${basePath}/" class="btn">Home</a>
                     <a href="${basePath}/chart/condition" class="btn">Condition Chart</a>
+                    <a href="${basePath}/chart/comparison" class="btn">Comparison Graph</a>
                     <a href="${basePath}/chart/scatter" class="btn">Scatter Plot</a>
                     <a href="${basePath}/stats/condition" class="btn">Statistics</a>
                 </div>
@@ -1766,6 +2287,7 @@ mainRouter.get('/stats/condition', (req, res) => {
             <div class="nav-buttons">
                 <a href="${basePath}/" class="btn">Home</a>
                 <a href="${basePath}/chart/scatter" class="btn btn-secondary">Scatter Plot</a>
+                <a href="${basePath}/chart/comparison" class="btn btn-secondary">Comparison Graph</a>
                 <a href="${basePath}/chart/condition" class="btn btn-tertiary">Condition Chart</a>
                 <a href="${basePath}/table/condition" class="btn btn-quaternary">View Table</a>
             </div>

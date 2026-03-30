@@ -19,6 +19,7 @@ describe('GET /', () => {
     test('contains links to all main routes', async () => {
         const res = await request(app).get('/');
         expect(res.text).toContain('/chart/condition');
+        expect(res.text).toContain('/chart/comparison');
         expect(res.text).toContain('/chart/scatter');
         expect(res.text).toContain('/table/condition');
         expect(res.text).toContain('/stats/condition');
@@ -70,6 +71,30 @@ describe('GET /chart/scatter', () => {
         const res = await request(app).get('/chart/scatter');
         expect(res.text).toContain('% Accessible Facilities');
         expect(res.text).toContain('% Facilities in Poor Condition');
+    });
+});
+
+describe('GET /chart/comparison', () => {
+    test('returns 200', async () => {
+        const res = await request(app).get('/chart/comparison');
+        expect(res.statusCode).toBe(200);
+    });
+
+    test('renders comparison line chart page', async () => {
+        const res = await request(app).get('/chart/comparison');
+        expect(res.text).toContain('Good Condition vs Accessibility Comparison');
+    });
+
+    test('fetches joined condition and accessibility stats endpoints', async () => {
+        const res = await request(app).get('/chart/comparison');
+        expect(res.text).toContain('/api/facilities/stats');
+        expect(res.text).toContain('/api/facilities/accessibility/stats');
+    });
+
+    test('contains axis labels for condition and accessibility', async () => {
+        const res = await request(app).get('/chart/comparison');
+        expect(res.text).toContain('Good Condition (%)');
+        expect(res.text).toContain('Accessibility (%)');
     });
 });
  
