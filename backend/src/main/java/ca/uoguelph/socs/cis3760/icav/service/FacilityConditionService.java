@@ -41,12 +41,7 @@ public class FacilityConditionService {
     public List<FacilityConditionStats> getFacilityConditionStats() {
         return facilityConditionRepository.findAllByOrderByProvinceAsc().stream()
             .map(data -> {
-                final int total = data.getExcellent() + data.getGood() + data.getFair() + data.getPoor();
-                final double excellentPercent = (double) data.getExcellent() / total * 100;
-                final double goodPercent = (double) data.getGood() / total * 100;
-                final double fairPercent = (double) data.getFair() / total * 100;
-                final double poorPercent = (double) data.getPoor() / total * 100;
-
+                final int total = calculateConditionTotal(data);
                 return new FacilityConditionStats(
                     data.getProvince(),
                     data.getExcellent(),
@@ -54,10 +49,10 @@ public class FacilityConditionService {
                     data.getFair(),
                     data.getPoor(),
                     total,
-                    Math.round(excellentPercent * 100.0) / 100.0,
-                    Math.round(goodPercent * 100.0) / 100.0,
-                    Math.round(fairPercent * 100.0) / 100.0,
-                    Math.round(poorPercent * 100.0) / 100.0
+                    calculatePercent(total, data.getExcellent()),
+                    calculatePercent(total, data.getGood()),
+                    calculatePercent(total, data.getFair()),
+                    calculatePercent(total, data.getPoor())
                 );
             })
             .collect(Collectors.toList());
@@ -89,16 +84,13 @@ public class FacilityConditionService {
                 final ca.uoguelph.socs.cis3760.icav.model.FacilityAccessibilityData acc = accessibilityMap
                         .get(province);
 
-                final int totalCondition = cond.getExcellent() + cond.getGood() + cond.getFair() + cond.getPoor();
-                final double poorPercent = (double) cond.getPoor() / totalCondition * 100;
-
+                final int totalCondition = calculateConditionTotal(cond);
                 final int totalAccessibility = acc.getAccessible() + acc.getNotAccessible();
-                final double accessiblePercent = (double) acc.getAccessible() / totalAccessibility * 100;
 
                 return new FacilityScatterData(
                     province,
-                    Math.round(accessiblePercent * 100.0) / 100.0,
-                    Math.round(poorPercent * 100.0) / 100.0,
+                    calculatePercent(totalAccessibility, acc.getAccessible()),
+                    calculatePercent(totalCondition, cond.getPoor()),
                     totalCondition  // Using condition total as total facilities
                 );
             })
@@ -114,17 +106,38 @@ public class FacilityConditionService {
     public List<FacilityHeatmapData> getFacilityHeatmapData() {
         return facilityConditionRepository.findAllByOrderByProvinceAsc().stream()
             .map(data -> {
-                final int total = data.getExcellent() + data.getGood() + data.getFair() + data.getPoor();
-                final double excellentPercent = total > 0 ? (double) data.getExcellent() / total * 100 : 0.0;
-                final double poorPercent = total > 0 ? (double) data.getPoor() / total * 100 : 0.0;
+                final int total = calculateConditionTotal(data);
 
                 return new FacilityHeatmapData(
                     data.getProvince(),
-                    Math.round(excellentPercent * 100.0) / 100.0,
-                    Math.round(poorPercent * 100.0) / 100.0,
+                    calculatePercent(total, data.getExcellent()),
+                    calculatePercent(total, data.getPoor()),
                     total
                 );
             })
             .collect(Collectors.toList());
+    }
+
+
+    /**
+    * Calculate the total facilities given a FacilityConditionData object
+    * 
+    * @return total number of facilities
+    */
+    private int calculateConditionTotal (FacilityConditionData data){
+        return data.getExcellent() + data.getGood() + data.getFair() + data.getPoor();
+    }
+
+
+    /**
+     * Calculates the percentage that a given portion represents of a total,
+     * rounded to two decimal places. If total is zero or less return 0.0 to 
+     * avoid division by zero or negatice percentage.
+     * 
+     * @return percentage value of portion over total
+     */
+    private double calculatePercent(int total, int portion){
+        // extra multiplication/division for rounding to correct place
+        return total > 0 ? Math.round((double) portion / total * 10000.0) / 100.0 : 0.0;
     }
 }
