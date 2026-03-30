@@ -1,3 +1,15 @@
 /backend/.gradle
 /backend/build
 /frontend/node_modules
+
+# Environment files
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# IDE/editor
+.idea/
+*.iml
+.vscode/
