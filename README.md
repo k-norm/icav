@@ -16,6 +16,7 @@ ICAV is a web-based dashboard that turns large public infrastructure datasets in
 - **Scatter Plot:** Accessibility vs Poor Condition by Province
 - **Stacked Bar Chart:** Facility Condition Breakdown by Province
 - **Canada Heatmap:** Facility Condition Intensity
+- **Comparison Graph:** Good Condition vs Accessibility by Province
 
 ---
 
