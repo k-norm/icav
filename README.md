@@ -1,5 +1,5 @@
 
-This was a project for my software engineering class. Over the semester my group and I developed this app using to DevOps and Agile methodologies. See below for instructions on how to run the app and view the wiki for our documentation.
+This was a project for my software engineering class. Over the semester my group and I developed this app using DevOps and Agile methodologies. See below for details and instructions on how to run the app and view the wiki for our documentation.
 
 # ICAV: Infrastructure Condition & Accessibility Visualizations
 
