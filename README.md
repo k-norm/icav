@@ -1,3 +1,6 @@
+
+This was a project for my software engineering class. Over the semester my group and I developed this app using to DevOps and Agile methodologies. See below for instructions on how to run the app and view the wiki for our documentation.
+
 # ICAV: Infrastructure Condition & Accessibility Visualizations
 
 ICAV is a web-based dashboard that turns large public infrastructure datasets into simple charts and maps. It is designed for managers and planners who need to make data-driven funding and planning decisions without manually parsing spreadsheets.
